@@ -1,0 +1,642 @@
+version: v1_0_rc_candidate_patch4_registry_classifier_consistency
+purpose: 'Single source of truth for the public AiNIR demo safety model. This registry
+  intentionally remains small, conservative, and demo-scoped. Normalizer, verifier,
+  policy core, and lowerer must use this registry rather than local duplicated allowlists.
+
+  '
+canonical_workflows:
+- CreateUser
+- PasswordReset
+- NewsletterSignup
+- PIIExportRequest
+- AccountDeletion
+- OrderPayment
+workflow_aliases:
+  createuser: CreateUser
+  create_user: CreateUser
+  create-user: CreateUser
+  user_signup: CreateUser
+  signup_user: CreateUser
+  signup: CreateUser
+  passwordreset: PasswordReset
+  password_reset: PasswordReset
+  password-reset: PasswordReset
+  newslettersignup: NewsletterSignup
+  newsletter_signup: NewsletterSignup
+  newsletter-signup: NewsletterSignup
+  pii_export: PIIExportRequest
+  piiexportrequest: PIIExportRequest
+  pii_export_request: PIIExportRequest
+  pii-export-request: PIIExportRequest
+  accountdeletion: AccountDeletion
+  account_deletion: AccountDeletion
+  account-deletion: AccountDeletion
+  orderpayment: OrderPayment
+  order_payment: OrderPayment
+  order-payment: OrderPayment
+effect_aliases:
+  real_payment: effect.external.payment.charge.real
+  payment.charge.real: effect.external.payment.charge.real
+  payment.charge_real: effect.external.payment.charge.real
+  payment.finalize.production: effect.external.payment.provider_call.real
+  payment.capture.live: effect.external.payment.capture.real
+  billing.capture.live: effect.external.payment.capture.real
+  sandbox_payment: effect.external.payment.charge.sandbox
+  mock_payment: effect.external.payment.charge.mock
+  real_email: effect.external.notification.email.real
+  email.send.real: effect.external.notification.email.real
+  mock_email: effect.external.notification.email.mock
+  raw_token_store: effect.secret.raw_token.store
+  raw_token_log: effect.secret.raw_token.log
+  raw_pii_log: effect.privacy.pii.raw_log
+  raw_pii_store: effect.privacy.pii.raw_store
+  hard_delete: effect.destructive.account.hard_delete
+  account.delete.permanent: effect.destructive.account.delete.permanent
+  effect.db.write.PaymentIntent: effect.storage.payment_intent.write
+  effect.db.write.User: effect.storage.db.write
+  effect.db.read.User: effect.storage.db.read
+allowed_external_effects:
+- effect.external.notification.email.mock
+- effect.external.payment.charge.sandbox
+- effect.external.payment.charge.mock
+safety_critical_effect_families:
+  payment_real:
+    severity: critical
+    description: Production-like financial-effect provider activity.
+    includes_all:
+    - payment
+    includes_any:
+    - real
+    - production
+    - prod
+    - live
+    - provider.call
+    - finalize
+    - settle
+    - capture
+    - charge
+    - authorize
+    - refund
+    excludes_any:
+    - sandbox
+    - mock
+    - test
+  payment_charge:
+    severity: high
+    description: Payment charge/capture/authorize/refund style operation, including
+      sandbox/mock.
+    includes_all:
+    - payment
+    includes_any:
+    - charge
+    - capture
+    - authorize
+    - refund
+    - settle
+    - finalize
+  raw_token:
+    severity: critical
+    description: Raw token persistence, logging, or writing.
+    includes_all:
+    - token
+    includes_any:
+    - raw
+    - cleartext
+    action_any:
+    - store
+    - log
+    - persist
+    - write
+  raw_pii:
+    severity: critical
+    description: Raw PII logging, storage, writing, or export.
+    includes_all:
+    - pii
+    includes_any:
+    - raw
+    - cleartext
+    action_any:
+    - log
+    - store
+    - write
+    - export
+  destructive_delete:
+    severity: critical
+    description: Hard, permanent, irreversible, destroy, erase, purge, or account/user
+      delete variants.
+    includes_any:
+    - account
+    - user
+    action_any:
+    - hard
+    - permanent
+    - irreversible
+    - destroy
+    - erase
+    - purge
+    - hard.delete
+    - delete.permanent
+    - permanent.delete
+  system_effect:
+    severity: critical
+    description: System/shell/tool execution markers are not accepted in the public
+      demo.
+    includes_any:
+    - system
+    - shell
+    - tool
+    action_any:
+    - exec
+    - execute
+    - call
+    - run
+  file_write:
+    severity: critical
+    description: File write markers require an explicit reviewed operation spec.
+    includes_all:
+    - file
+    action_any:
+    - write
+    - delete
+    - modify
+  db_delete:
+    severity: critical
+    description: Database delete effects are destructive and require an explicit reviewed
+      workflow.
+    includes_all:
+    - db
+    action_any:
+    - delete
+    - destroy
+    - remove
+  crypto_decrypt:
+    severity: high
+    description: Decrypt/use-secret effects require explicit reviewed operation specs.
+    includes_any:
+    - decrypt
+    - secret.use
+  notification_real:
+    severity: critical
+    description: Real/direct notification or email delivery markers.
+    includes_any:
+    - email
+    - notification
+    action_any:
+    - real
+    - send
+    - marketing
+    excludes_any:
+    - mock
+    - sandbox
+    - test
+safety_critical_operation_patterns:
+  external_network:
+    implied_family: external_network
+    requires_explicit_effect_family: external
+    includes_any:
+    - http
+    - api
+    - external
+    - provider.call
+    op_suffix_any:
+    - call
+    - request
+    - send
+  payment:
+    implied_family: payment
+    requires_explicit_effect_family: payment
+    includes_all:
+    - payment
+    includes_any:
+    - charge
+    - capture
+    - authorize
+    - refund
+    - settle
+    - finalize
+  real_email:
+    implied_family: notification_real
+    requires_explicit_effect_family: notification
+    includes_all:
+    - email
+    includes_any:
+    - send
+    - marketing
+    - real
+  raw_token:
+    implied_family: raw_token
+    requires_explicit_effect_family: secret
+    includes_all:
+    - token
+    includes_any:
+    - store
+    - log
+    - persist
+    - write
+  raw_pii:
+    implied_family: raw_pii
+    requires_explicit_effect_family: privacy
+    includes_all:
+    - pii
+    includes_any:
+    - store
+    - log
+    - export
+    - write
+  destructive_delete:
+    implied_family: destructive_delete
+    requires_explicit_effect_family: destructive
+    includes_any:
+    - account
+    - user
+    action_any:
+    - delete
+    - remove
+    - destroy
+    - erase
+    - purge
+    - permanent
+    - irreversible
+capability_contracts:
+  effect.storage.db.read:
+    prefixes:
+    - cap.db.
+  effect.storage.db.write:
+    prefixes:
+    - cap.db.
+  effect.storage.outbox.write:
+    prefixes:
+    - cap.outbox.write
+  effect.auth.authorization.check:
+    prefixes:
+    - cap.auth.check
+  effect.privacy.pii.read:
+    prefixes:
+    - cap.pii.read
+  effect.privacy.pii.raw_log:
+    prefixes:
+    - cap.log.write
+    - cap.pii.
+  effect.privacy.pii.raw_store:
+    prefixes:
+    - cap.export.storage.write
+    - cap.pii.
+  effect.secret.raw_token.store:
+    prefixes:
+    - cap.db.
+    - cap.secret.
+  effect.secret.raw_token.log:
+    prefixes:
+    - cap.log.write
+    - cap.secret.
+  effect.destructive.account.hard_delete:
+    prefixes:
+    - cap.account.delete
+  effect.crypto.encrypt:
+    prefixes:
+    - cap.crypto.encrypt
+  effect.storage.export_package.write:
+    prefixes:
+    - cap.export.storage.write
+  effect.payment.validate.Amount:
+    prefixes:
+    - cap.payment.validate
+  effect.storage.payment_intent.write:
+    prefixes:
+    - cap.db.
+trusted_evidence:
+  bundled_ids: {}
+  allowed_kinds:
+  - verifier_report
+  - test_result
+  - runtime_trace
+  - human_approval
+  - operation_spec
+  - static_analysis
+  trusted_producers:
+  - bundled_fixture
+  - verifier
+  - runtime_harness
+  - human_reviewer
+  - static_analyzer
+  untrusted_sources:
+  - model
+  - llm
+  - provider_output
+  - llm_output
+  - self
+  - claude
+  - anthropic
+  - chatgpt
+  - openai
+  - gpt
+  - gpt4
+  - gpt-4
+  - gpt5
+  - gpt-5
+  - gemini
+  - google_ai
+  - perplexity
+  - codex
+  note: Bundled evidence records moved to evidence_ledger.yaml in pre-v1 Phase 3.
+workflow_profiles:
+  CreateUser:
+    required_roles:
+    - normalize_email
+    - duplicate_check
+    - create_user
+    - outbox_event
+    required_policies:
+    - policy.no_direct_email_in_create_user
+    - policy.transactional_outbox_required
+    - policy.user_email_unique
+    required_transaction_roles:
+    - create_user
+    - outbox_event
+    forbidden_families:
+    - notification_real
+    - payment_real
+    - external_unallowlisted
+    required_transaction_policies:
+    - policy.transactional_outbox_required
+    transaction_order_roles:
+    - - create_user
+      - outbox_event
+    transaction_contract: transactional_outbox_atomic
+  PasswordReset:
+    required_roles:
+    - normalize_email
+    - user_lookup
+    - no_user_enumeration
+    - token_safe_handling
+    - outbox_event
+    required_policies:
+    - policy.no_user_enumeration
+    forbidden_families:
+    - raw_token
+    - notification_real
+    - external_unallowlisted
+    forbidden_roles:
+    - raw_token_persistence
+  NewsletterSignup:
+    required_roles:
+    - normalize_email
+    - consent_enforcement
+    - subscriber_record
+    - double_opt_in_outbox
+    required_policies:
+    - policy.no_marketing_without_consent
+    forbidden_families:
+    - notification_real
+    - raw_token
+    - external_unallowlisted
+  PIIExportRequest:
+    required_roles:
+    - authorization
+    - pii_read
+    - export_allowlist
+    - export_encryption
+    - export_package_storage
+    required_policies:
+    - policy.pii_export_authorization_required
+    - policy.export_package_must_be_encrypted
+    - policy.export_fields_allowlist_required
+    forbidden_families:
+    - raw_pii
+    - external_unallowlisted
+    forbidden_roles:
+    - raw_pii_logging
+    - raw_pii_storage
+  AccountDeletion:
+    required_roles:
+    - authorization
+    - reauth
+    - legal_hold_check
+    - grace_period_check
+    required_policies:
+    - policy.no_hard_delete_in_beta
+    forbidden_families:
+    - destructive_delete
+    - external_unallowlisted
+    forbidden_roles:
+    - hard_delete
+  OrderPayment:
+    required_roles:
+    - authorization
+    - amount_validation
+    - payment_intent
+    required_policies:
+    - policy.no_real_payment_in_beta
+    - policy.payment_idempotency_required
+    forbidden_families:
+    - payment_real
+    - external_unallowlisted
+role_markers:
+  authorization:
+    op_any:
+    - auth.check
+    - authorization
+    effect_any:
+    - effect.auth.authorization.check
+  approval_or_grace:
+    op_any:
+    - approval
+    - grace.period
+    - legal.hold
+    - reauth
+    policy_any:
+    - policy.human_approval_required
+    - policy.grace_period_required
+    - policy.legal_hold_check
+  consent_enforcement:
+    op_any:
+    - consent.enforce
+    - marketing.consent
+    - check.consent
+    policy_any:
+    - policy.no_marketing_without_consent
+  subscriber_or_outbox:
+    op_any:
+    - subscriber
+    - outbox.insert
+    effect_any:
+    - effect.storage.outbox.write
+    - effect.storage.db.write
+  token_safe_handling:
+    op_any:
+    - hash_token
+    - seal_token
+    - token.hash
+    - token.seal
+    effect_any:
+    - effect.secret.token.hash
+    - effect.secret.token.seal
+  outbox_or_generic_accept:
+    op_any:
+    - outbox.insert
+    - accepted.response
+    - generic.accept
+    effect_any:
+    - effect.storage.outbox.write
+  encrypted_or_safe_export:
+    op_any:
+    - encrypt
+    - encrypted
+    - allowlist
+    - package.create
+    effect_any:
+    - effect.crypto.encrypt
+    - effect.storage.export_package.write
+    policy_any:
+    - policy.export_package_must_be_encrypted
+    - policy.export_fields_allowlist_required
+  amount_validation:
+    op_any:
+    - amount.validate
+    - validate_amount
+    - order.amount.match
+    policy_any:
+    - policy.payment_amount_must_match_order
+  payment_intent:
+    op_any:
+    - payment_intent
+    - intent.create
+    - insert_payment_intent
+    effect_any:
+    - effect.storage.payment_intent.write
+    - effect.storage.db.write
+  idempotency:
+    op_any:
+    - idempotency
+    - idempotency_key
+    policy_any:
+    - policy.payment_idempotency_required
+    - policy.idempotency_key_required
+typescript_reserved_words:
+- abstract
+- any
+- as
+- async
+- await
+- boolean
+- break
+- case
+- catch
+- class
+- const
+- constructor
+- continue
+- debugger
+- declare
+- default
+- delete
+- do
+- else
+- enum
+- export
+- extends
+- false
+- finally
+- for
+- from
+- function
+- get
+- if
+- implements
+- import
+- in
+- infer
+- instanceof
+- interface
+- is
+- keyof
+- let
+- module
+- namespace
+- never
+- new
+- null
+- number
+- object
+- of
+- package
+- private
+- protected
+- public
+- readonly
+- require
+- return
+- set
+- static
+- string
+- super
+- switch
+- symbol
+- this
+- throw
+- true
+- try
+- type
+- typeof
+- undefined
+- unique
+- unknown
+- var
+- void
+- while
+- with
+- yield
+trusted_execution_context:
+  environments:
+  - public_demo
+  - test
+  - staging
+  - production
+  test_like:
+  - public_demo
+  - test
+  production:
+  - production
+effect_families:
+  payment:
+    description: Any registered payment effect marker.
+    includes_all:
+    - payment
+  notification:
+    description: Email or notification effect marker.
+    includes_any:
+    - email
+    - notification
+  secret:
+    description: Secret or token effect marker.
+    includes_any:
+    - secret
+    - token
+  privacy:
+    description: Privacy or PII effect marker.
+    includes_any:
+    - privacy
+    - pii
+  destructive:
+    description: Destructive effect marker.
+    includes_any:
+    - destructive
+lowering_type_allowlist:
+- Record<string, unknown>
+- unknown
+- string
+- number
+- boolean
+- CreateUserInput
+- CreateUserResult
+- PasswordResetInput
+- AcceptedResponse
+- PaymentIntentInput
+- PaymentResult
+- PIIExportJob
+- ExportPackageRef
+- AccountDeletionJob
+- DeletionResult
+lowering_return_allowlist:
+- state
+- input

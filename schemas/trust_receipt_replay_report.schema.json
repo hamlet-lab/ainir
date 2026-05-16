@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AiNIR TrustReceipt Replay Report",
+  "type": "object",
+  "required": ["overall_status", "receipt_id", "checks"],
+  "properties": {
+    "overall_status": {"type": "string", "enum": ["passed", "failed"]},
+    "receipt_id": {"type": ["string", "null"]},
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["check", "status"],
+        "properties": {
+          "check": {"type": "string"},
+          "status": {"type": "string", "enum": ["passed", "failed"]},
+          "expected": {},
+          "actual": {}
+        }
+      }
+    },
+    "fresh_decision": {"type": "object"},
+    "receipt": {"type": "object"}
+  }
+}

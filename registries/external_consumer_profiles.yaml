@@ -1,0 +1,98 @@
+version: pre_v1_phase25
+purpose: >
+  AiNIR-owned external consumer profile registry. Profiles are optional future-facing
+  consumer slots. They do not import, invoke, or integrate any downstream compiler/runtime.
+profiles:
+  - id: AIVLConsumerProfile
+    display_name: AIVL Consumer Profile
+    status: contract_slot_only
+    supported_workflows:
+      - PIIExportRequest
+    supported_task_families:
+      - pii_export_pipeline
+    description: >
+      Consumer profile for systems that may accept verified semantic intent and later
+      compile it into their own intent/program representation. The profile is a
+      contract surface only; no downstream code is imported or invoked by AiNIR.
+    required_slots:
+      - trust
+      - profile_scope
+      - evidence_bindings
+      - effects
+      - capabilities
+      - intent
+      - grounding_status
+      - groundings
+      - ambiguity
+      - operation_constraints
+      - required_contracts
+      - security_classifications
+      - receipt_links
+    planning_rule: trust.status must be verified and trust.decision must be allow.
+    profile_export_rule: Only PIIExportRequest is supported in this pre-v1 profile.
+    grounding_rule: consumer_must_ground
+    strict_packet_validation:
+      no_unknown_fields: true
+      pii_export_requires_evidence: true
+      pii_export_requires_effect: PIIExport
+      pii_export_requires_capability: PIIExport
+      requires_human_review: true
+      operation_constraints_must_be_profile_allowed: true
+      required_contracts_must_match_profile: true
+    allowed_consumer_effects:
+      - AuthorizationCheck
+      - Encrypt
+      - PIIExport
+      - PIIRead
+      - WriteExportPackage
+    denied_consumer_effects:
+      - AccountDelete
+      - NetworkAccess
+      - PaymentCharge
+      - SecretAccess
+      - WriteDatabase
+    allowed_consumer_capabilities:
+      - AuthorizationCheck
+      - Encrypt
+      - PIIExport
+      - PIIRead
+      - WriteExportPackage
+    denied_consumer_capabilities:
+      - AccountDelete
+      - NetworkAccess
+      - PaymentCharge
+      - SecretAccess
+      - WriteDatabase
+    allowed_operations:
+      - authorization_check
+      - field_allowlist_check
+      - read_pii_fields
+      - encrypt_export_package
+      - store_export_package
+    denied_operations:
+      - delete
+      - update
+      - external_network_send
+      - production_financial_effect
+    required_contracts:
+      - encrypted_export_package
+      - field_allowlist
+      - filter_matches
+      - pii_export_authorized
+      - pii_export_boundary_declared
+      - projection_matches
+      - schema_grounding_required
+    slot_semantics:
+      trust: AiNIR Trust Gate decision summary.
+      profile_scope: The consumer profile, supported workflow, and task family.
+      evidence_bindings: Ledger-bound evidence references supporting verified claims.
+      effects: AiNIR-declared/implied effects plus profile-allowed consumer-facing effect labels.
+      capabilities: AiNIR-declared/implied capabilities plus profile-allowed consumer-facing capability labels.
+      intent: Registry-derived high-level task intent; raw draft intent is not passed through.
+      grounding_status: Declares that concrete schema/source/filter/projection grounding remains a downstream consumer obligation.
+      groundings: Empty in this pre-v1 profile unless AiNIR has a verified grounding subsystem. Raw draft groundings are not passed through.
+      ambiguity: Whether critical ambiguity remains unresolved.
+      operation_constraints: Allowed/denied operation boundary and semantic roles.
+      required_contracts: Contracts a downstream compiler/runtime should preserve or re-check, including schema_grounding_required.
+      security_classifications: Field/data classification surfaced by AiNIR from profile/registry.
+      receipt_links: TrustReceipt and hash bindings for replay/audit.

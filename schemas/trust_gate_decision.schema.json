@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AiNIR Trust Gate Decision",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "status",
+    "module_id",
+    "workflow",
+    "executable",
+    "lowering_allowed",
+    "handoff_allowed",
+    "trusted_environment",
+    "satisfied_gates",
+    "failed_gates",
+    "verifier_report",
+    "receipt"
+  ],
+  "properties": {
+    "kind": {
+      "const": "AiNIRTrustGateDecision"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "refused",
+        "invalid",
+        "hold"
+      ]
+    },
+    "module_id": {
+      "type": "string"
+    },
+    "workflow": {
+      "type": "string"
+    },
+    "executable": {
+      "type": "boolean"
+    },
+    "lowering_allowed": {
+      "type": "boolean"
+    },
+    "handoff_allowed": {
+      "type": "boolean"
+    },
+    "trusted_environment": {
+      "type": "string"
+    },
+    "satisfied_gates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "failed_gates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warning_gates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_next_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verifier_report": {
+      "type": "object"
+    },
+    "lowering_eligibility": {
+      "type": "object"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "receipt": {
+      "type": "object"
+    }
+  }
+}

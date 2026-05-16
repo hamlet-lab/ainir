@@ -1,0 +1,89 @@
+release_candidate: AiNIR v1.0 RC Candidate
+status: rc_candidate
+not_v1_final: true
+production_runtime_ready: false
+human_external_review: pending
+public_repo_role: bounded_public_demo
+private_archive_role: full_private_review_archive
+frozen_public_surfaces:
+  - TrustGateDecision
+  - TrustReceipt
+  - TrustReceiptReplayReport
+  - VerifiedIntentPacket
+  - Safety Registry
+  - Evidence Ledger
+  - Operation Spec Registry
+  - Lowering Eligibility Gate
+  - Negative Conformance Corpus
+  - Golden Traces
+  - Launch Readiness / Release Readiness Checks
+known_limitations:
+  - no production runtime backend
+  - bounded public workflow registry
+  - no enterprise evidence ledger backend
+  - no complete enterprise effect taxonomy
+  - exact registry-snapshot TrustReceipt replay only
+  - no downstream integration implementation
+  - no v1 final stability claim
+required_checks:
+  - pytest
+  - public_demo
+  - negative_conformance
+  - golden_traces
+  - phase25_verified_intent_contract
+  - phase26_private_trial
+  - phase30_v1_rc_candidate_check
+  - trust_surface_consistency_patch2
+
+patch2_trust_surface_consistency:
+  lowering_preflight_matches_trust_gate: true
+  evidence_checked_status_rejected: true
+  trust_receipt_stable_projection_replay: true
+  executable_false_lowering_refused: true
+  git_tracked_cache_scan: true
+
+
+patch3_scope_boundaries:
+  bounded_workflow_registry_documented: true
+  evidence_provider_interface_documented: true
+  effect_taxonomy_limitations_documented: true
+  registry_evolution_roadmap_documented: true
+  executable_claim_semantics_documented: true
+  verified_intent_packet_scope_documented: true
+
+
+patch4_registry_classifier_consistency:
+  registry_driven_family_classification: true
+  token_boundary_classifier_matching: true
+  raw_token_outbox_false_positive_reduced: true
+  lowering_allowlist_registry_sourced: true
+  trust_gate_prefix_mapping_explicit: true
+  verified_intent_policy_hash_distinct: true
+  demo_expected_status_manifest: true
+
+
+patch5_positioning_scope_wording:
+  public_scope_claims_documented: true
+  bounded_registry_positioning_documented: true
+  profile_based_infrastructure_path_documented: true
+
+patch6_release_identity_and_cross_platform_paths:
+  manifest_identity_updated: true
+  temp_paths_use_tempfile_gettempdir: true
+  windows_powershell_output_path_documented: true
+  ci_no_longer_requires_hardcoded_tmp_outdir: true
+
+patch7_repo_local_temp_guard:
+  phase26_temp_copy_avoids_repo_local_temp_root: true
+  local_temp_scratch_patterns_ignored: true
+  source_repo_temp_path_scan_added: true
+  child_command_temp_root_sanitized_when_repo_local: true
+  gitignore_scratch_patterns_added: true
+  cross_platform_temp_docs_updated: true
+
+
+patch7_repo_local_temp_isolation:
+  phase26_copy_ignores_repo_local_temp_dirs: true
+  phase26_uses_out_of_checkout_trial_workspace: true
+  phase26_sanitizes_child_ainir_temp_root: true
+  repo_local_temp_paths_reported_as_warnings: true

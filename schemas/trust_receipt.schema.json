@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AiNIR Trust Receipt",
+  "type": "object",
+  "required": [
+    "receipt_id",
+    "receipt_kind",
+    "version",
+    "status",
+    "draft_hash",
+    "safety_registry_hash",
+    "trusted_context",
+    "production_runtime_ready",
+    "v1_final_ready"
+  ],
+  "properties": {
+    "receipt_id": {
+      "type": "string"
+    },
+    "receipt_kind": {
+      "const": "AiNIRTrustReceipt"
+    },
+    "version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "refused",
+        "invalid",
+        "hold"
+      ]
+    },
+    "module_id": {
+      "type": "string"
+    },
+    "workflow": {
+      "type": "string"
+    },
+    "draft_hash": {
+      "type": "string",
+      "pattern": "^sha256:"
+    },
+    "safety_registry_hash": {
+      "type": "string",
+      "pattern": "^sha256:"
+    },
+    "verifier_report_hash": {
+      "type": "string",
+      "pattern": "^sha256:"
+    },
+    "trusted_context": {
+      "type": "object"
+    },
+    "failed_gates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warning_gates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "lowering_eligibility": {
+      "type": "object"
+    },
+    "production_runtime_ready": {
+      "const": false
+    },
+    "v1_final_ready": {
+      "const": false
+    },
+    "external_consumer_handoff": {
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "report": "ainir.pre_v1.phase17.final_defensive_conformance_review",
+  "generated_at": "2026-05-09T18:09:07.906879+00:00",
+  "overall_status": "passed",
+  "decision": "public_launch_candidate_ready_for_private_github_trial",
+  "human_external_evaluator_status": "pending",
+  "production_runtime_ready": false,
+  "v1_final_ready": false,
+  "steps_total": 5,
+  "steps_passed": 5,
+  "steps_warning": 0,
+  "steps_failed": 0,
+  "steps": [
+    {
+      "name": "release_candidate_review",
+      "command": [
+        "/opt/pyvenv/bin/python",
+        "scripts/run_release_candidate_review.py",
+        "--out-dir",
+        "/tmp/ainir_phase17_build/public_phase17_review/release_review"
+      ],
+      "expected": "success",
+      "exit_code": 0,
+      "status": "passed",
+      "stdout_tail": "AiNIR pre-v1 public launch candidate review: passed\nreport: /tmp/ainir_phase17_build/public_phase17_review/release_review/release_candidate_review_report.json\nsummary: /tmp/ainir_phase17_build/public_phase17_review/release_review/release_candidate_review_summary.md",
+      "stderr_tail": ""
+    },
+    {
+      "name": "prelaunch_check",
+      "command": [
+        "/opt/pyvenv/bin/python",
+        "scripts/run_prelaunch_check.py",
+        "--out-dir",
+        "/tmp/ainir_phase17_build/public_phase17_review/prelaunch"
+      ],
+      "expected": "success",
+      "exit_code": 0,
+      "status": "passed",
+      "stdout_tail": "AiNIR prelaunch check: passed\nreport: /tmp/ainir_phase17_build/public_phase17_review/prelaunch/prelaunch_report.json\nsummary: /tmp/ainir_phase17_build/public_phase17_review/prelaunch/prelaunch_summary.md",
+      "stderr_tail": ""
+    },
+    {
+      "name": "phase17_synthetic_conformance_cases",
+      "status": "passed",
+      "case_count": 5,
+      "passed": 5,
+      "failed": 0,
+      "cases": [
+        {
+          "name": "extra_capability_on_pure_operation_refused",
+          "expected_status": [
+            "blocked",
+            "invalid"
+          ],
+          "observed_status": "blocked",
+          "critical_count": 1,
+          "observed_rules": [
+            "O012.operation_declares_unallowed_capability"
+          ],
+          "lower_expected": "refused",
+          "lower_observed": "refused",
+          "status": "passed"
+        },
+        {
+          "name": "production_financial_operation_disguised_as_sandbox_refused",
+          "expected_status": [
+            "blocked",
+            "invalid"
+          ],
+          "observed_status": "blocked",
+          "critical_count": 3,
+          "observed_rules": [
+            "N010.operation_alias_normalized",
+            "O010.operation_forbidden_in_public_demo",
+            "O003.operation_not_allowed_in_any_workflow",
+            "O012.operation_declares_unallowed_capability"
+          ],
+          "lower_expected": "refused",
+          "lower_observed": "refused",
+          "status": "passed"
+        },
+        {
+          "name": "forbidden_secret_persistence_role_refused_even_with_safe_effect",
+          "expected_status": [
+            "blocked",
+            "invalid"
+          ],
+          "observed_status": "blocked",
+          "critical_count": 4,
+          "observed_rules": [
+            "N010.operation_alias_normalized",
+            "O005.operation_required_effect_family_missing",
+            "O011.operation_forbidden_semantic_role",
+            "O011.operation_forbidden_semantic_role",
+            "O012.operation_declares_unallowed_capability"
+          ],
+          "lower_expected": "refused",
+          "lower_observed": "refused",
+          "status": "passed"
+        },
+        {
+          "name": "registered_pii_export_safe_flow_passes",
+          "expected_status": [
+            "passed"
+          ],
+          "observed_status": "passed",
+          "critical_count": 0,
+          "observed_rules": [],
+          "lower_expected": null,
+          "lower_observed": null,
+          "status": "passed"
+        },
+        {
+          "name": "create_user_without_transaction_refused",
+          "expected_status": [
+            "blocked",
+            "invalid"
+          ],
+          "observed_status": "blocked",
+          "critical_count": 1,
+          "observed_rules": [
+            "TX001.transaction_required"
+          ],
+          "lower_expected": "refused",
+          "lower_observed": "refused",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "name": "typescript_compile",
+      "status": "passed",
+      "lower_step": {
+        "name": "lower_safe_create_user",
+        "command": [
+          "/opt/pyvenv/bin/python",
+          "-m",
+          "ainir",
+          "lower",
+          "examples/create_user_outbox_safe/draft.yaml",
+          "--out-dir",
+          "/tmp/ainir_phase17_build/public_phase17_review/typescript_compile"
+        ],
+        "expected": "success",
+        "exit_code": 0,
+        "status": "passed",
+        "stdout_tail": "lowered: /tmp/ainir_phase17_build/public_phase17_review/typescript_compile/demo.create_user_outbox_safe.lowered.ts",
+        "stderr_tail": ""
+      },
+      "compile_step": {
+        "name": "tsc_generated_skeleton",
+        "command": [
+          "tsc",
+          "-p",
+          "/tmp/ainir_phase17_build/public_phase17_review/typescript_compile/tsconfig.json"
+        ],
+        "expected": "success",
+        "exit_code": 0,
+        "status": "passed",
+        "stdout_tail": "",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "name": "documentation_scope",
+      "status": "passed",
+      "findings": []
+    }
+  ]
+}

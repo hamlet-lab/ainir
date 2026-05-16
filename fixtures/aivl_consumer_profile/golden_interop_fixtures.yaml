@@ -1,0 +1,21 @@
+version: pre_v1_phase25
+purpose: Contract-level interop fixtures for the AIVL Consumer Profile. These are not downstream integration tests.
+fixtures:
+  - id: pii_export_with_evidence_allowed
+    expected_ainir_export: exported
+    reason: ledger_bound_authorization_evidence_present
+  - id: pii_export_without_evidence_blocked
+    expected_ainir_export: refused
+    reason: profile_requires_verified_authorization_evidence
+  - id: ambiguous_top_customers_blocked
+    expected_ainir_export: refused
+    reason: unresolved_ambiguity
+  - id: network_export_denied
+    expected_ainir_export: refused
+    reason: trust_gate_not_passed
+  - id: create_user_profile_unsupported
+    expected_ainir_export: refused
+    reason: consumer_profile_does_not_support_workflow
+notes:
+  - safe_internal_query_allowed is intentionally not a live AiNIR export fixture in this pre-v1 profile.
+  - Concrete data-schema grounding remains a future consumer obligation.

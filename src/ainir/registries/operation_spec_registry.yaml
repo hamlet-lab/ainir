@@ -1,0 +1,839 @@
+version: pre_v1_phase16_exact_capability_contracts
+purpose: 'Bounded operation spec registry for the public AiNIR demo. Workflow semantic
+  profiles must be satisfied by registered semantic roles, not by arbitrary keyword
+  matches in operation names. This is a demo-scoped registry, not a full production
+  operation catalog.
+
+  '
+trusted_spec_levels:
+- demo_human_reviewed
+- bundled_fixture
+unknown_operation_policy: block_for_known_workflows
+operations:
+- id: data.normalize_email
+  aliases:
+  - normalize_email
+  - data.email.normalize
+  trust_level: demo_human_reviewed
+  pure: true
+  semantic_roles:
+  - normalize_email
+  allowed_workflows:
+  - CreateUser
+  - PasswordReset
+  - NewsletterSignup
+  required_effects: []
+  allow_extra_effects: false
+  allowed_effects: []
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: data.noop
+  aliases:
+  - noop
+  - data.no_op
+  trust_level: demo_human_reviewed
+  pure: true
+  semantic_roles: []
+  allowed_workflows: []
+  required_effects: []
+  notes: No-op is intentionally not allowed to satisfy semantic profiles.
+  allow_extra_effects: false
+  allowed_effects: []
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: db.exists_user_by_email
+  aliases:
+  - db.find_user_by_email
+  - db.lookup_user_by_email
+  - find_user_by_email
+  trust_level: demo_human_reviewed
+  pure: false
+  semantic_roles:
+  - duplicate_check
+  - user_lookup
+  allowed_workflows:
+  - CreateUser
+  - PasswordReset
+  required_effects:
+  - effect.storage.db.read
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.db.read
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: &id001
+  - cap.db.user.read
+  - cap.db.read
+  required_capabilities: []
+  required_capability_any: *id001
+- id: db.insert_user
+  aliases:
+  - insert_user
+  - db.create_user
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - create_user
+  allowed_workflows:
+  - CreateUser
+  required_effects:
+  - effect.storage.db.write
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.db.write
+  requires_policy_any:
+  - policy.user_email_unique
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.db.user.write
+  - cap.db.write
+  required_capabilities: []
+  required_capability_any:
+  - cap.db.user.write
+  - cap.db.write
+- id: outbox.insert_welcome_email_requested
+  aliases:
+  - outbox.insert_welcome_email
+  - outbox.insert_welcome_email_job
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - outbox_event
+  - welcome_email_outbox
+  allowed_workflows:
+  - CreateUser
+  required_effects:
+  - effect.storage.outbox.write
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.outbox.write
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.outbox.write
+  required_capabilities: []
+  required_capability_any:
+  - cap.outbox.write
+- id: email.send.real
+  aliases:
+  - email.send.real
+  - email.send_welcome.real
+  - send_real_email
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - direct_real_notification
+  allowed_workflows: []
+  required_effect_families:
+  - notification
+  forbidden_families:
+  - notification_real
+  allow_extra_effects: false
+  allowed_effect_families:
+  - notification
+  forbidden_in_public_demo: true
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: db.find_user_for_password_reset
+  aliases:
+  - db.find_user_for_password_reset
+  - db.find_password_reset_user
+  - db.find_user_by_email
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - user_lookup
+  - generic_accept_possible
+  allowed_workflows:
+  - PasswordReset
+  required_effects:
+  - effect.storage.db.read
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.db.read
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.db.read
+  required_capabilities: []
+  required_capability_any:
+  - cap.db.read
+- id: secret.hash_password_reset_token
+  aliases:
+  - hash_token
+  - token.hash
+  - secret.hash_token
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - token_safe_handling
+  allowed_workflows:
+  - PasswordReset
+  required_effect_families:
+  - secret
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effect_families:
+  - secret
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.secret.hash
+  required_capabilities: []
+  required_capability_any:
+  - cap.secret.hash
+- id: secret.seal_password_reset_token
+  aliases:
+  - seal_token
+  - token.seal
+  - secret.seal_token
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - token_safe_handling
+  allowed_workflows:
+  - PasswordReset
+  required_effect_families:
+  - secret
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effect_families:
+  - secret
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.secret.seal
+  required_capabilities: []
+  required_capability_any:
+  - cap.secret.seal
+- id: db.insert_password_reset_token
+  aliases:
+  - db.store_raw_reset_token
+  - db.insert_raw_reset_token
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - raw_token_persistence
+  allowed_workflows:
+  - PasswordReset
+  required_effect_families:
+  - secret
+  forbidden_families:
+  - raw_token
+  allow_extra_effects: false
+  allowed_effect_families:
+  - secret
+  forbidden_roles:
+  - raw_token_persistence
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: outbox.insert_password_reset_requested
+  aliases:
+  - outbox.insert_password_reset_email_requested
+  - outbox.insert_password_reset_job
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - outbox_event
+  - outbox_or_generic_accept
+  allowed_workflows:
+  - PasswordReset
+  required_effects:
+  - effect.storage.outbox.write
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.outbox.write
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.outbox.write
+  required_capabilities: []
+  required_capability_any:
+  - cap.outbox.write
+- id: consent.enforce
+  aliases:
+  - newsletter.enforce_marketing_consent
+  - marketing.consent
+  - consent.check
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - consent_enforcement
+  allowed_workflows:
+  - NewsletterSignup
+  required_effects: []
+  allow_extra_effects: false
+  allowed_effects: []
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: db.insert_subscriber
+  aliases:
+  - subscriber.insert
+  - db.create_subscriber
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - subscriber_record
+  allowed_workflows:
+  - NewsletterSignup
+  required_effects:
+  - effect.storage.db.write
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.db.write
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.db.write
+  required_capabilities: []
+  required_capability_any:
+  - cap.db.write
+- id: outbox.insert_double_opt_in
+  aliases:
+  - outbox.insert_double_opt_in_email_requested
+  - outbox.insert_double_opt_in
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - double_opt_in_outbox
+  - outbox_event
+  - subscriber_or_outbox
+  allowed_workflows:
+  - NewsletterSignup
+  required_effects:
+  - effect.storage.outbox.write
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.outbox.write
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.outbox.write
+  required_capabilities: []
+  required_capability_any:
+  - cap.outbox.write
+- id: email.marketing.real
+  aliases:
+  - email.marketing.real
+  - send_marketing_email.real
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - direct_real_notification
+  - marketing_email
+  allowed_workflows: []
+  required_effect_families:
+  - notification
+  forbidden_families:
+  - notification_real
+  allow_extra_effects: false
+  allowed_effect_families:
+  - notification
+  forbidden_in_public_demo: true
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: auth.check_pii_export_authorization
+  aliases:
+  - auth.check_export_authorization
+  - authorize_export
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - authorization
+  allowed_workflows:
+  - PIIExportRequest
+  required_effects:
+  - effect.auth.authorization.check
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.auth.authorization.check
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.auth.check
+  required_capabilities: []
+  required_capability_any:
+  - cap.auth.check
+- id: db.read_user_pii_bundle
+  aliases:
+  - read_user_pii
+  - pii.read_bundle
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - pii_read
+  allowed_workflows:
+  - PIIExportRequest
+  required_effects:
+  - effect.privacy.pii.read
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.privacy.pii.read
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.pii.read
+  required_capabilities: []
+  required_capability_any:
+  - cap.pii.read
+- id: export.encrypt_pii_export_package
+  aliases:
+  - encrypt_export_package
+  - crypto.encrypt_export_package
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - encrypted_or_safe_export
+  - export_encryption
+  allowed_workflows:
+  - PIIExportRequest
+  required_effects:
+  - effect.crypto.encrypt
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.crypto.encrypt
+  required_capability_prefixes: []
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.crypto.encrypt
+  required_capabilities: []
+  required_capability_any:
+  - cap.crypto.encrypt
+- id: storage.write_encrypted_pii_export_package
+  aliases:
+  - storage.write_encrypted_export_package
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - encrypted_or_safe_export
+  - export_package_storage
+  allowed_workflows:
+  - PIIExportRequest
+  required_effects:
+  - effect.storage.export_package.write
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.export_package.write
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.export.storage.write
+  required_capabilities: []
+  required_capability_any:
+  - cap.export.storage.write
+- id: log.write_debug
+  aliases:
+  - debug.log
+  - log.raw_pii
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - raw_pii_logging
+  allowed_workflows:
+  - PIIExportRequest
+  required_effect_families:
+  - privacy
+  forbidden_families:
+  - raw_pii
+  allow_extra_effects: false
+  allowed_effect_families:
+  - privacy
+  forbidden_roles:
+  - raw_pii_logging
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: storage.write_export_package
+  aliases:
+  - storage.write_unencrypted_export_package
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - raw_pii_storage
+  allowed_workflows:
+  - PIIExportRequest
+  required_effect_families:
+  - privacy
+  forbidden_families:
+  - raw_pii
+  allow_extra_effects: false
+  allowed_effect_families:
+  - privacy
+  forbidden_roles:
+  - raw_pii_storage
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: auth.check_account_deletion_authorization
+  aliases:
+  - auth.check_account_deletion
+  - authorization.account_deletion
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - authorization
+  allowed_workflows:
+  - AccountDeletion
+  required_effects:
+  - effect.auth.authorization.check
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.auth.authorization.check
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.auth.check
+  required_capabilities: []
+  required_capability_any:
+  - cap.auth.check
+- id: auth.verify_recent_reauthentication
+  aliases:
+  - reauth.check
+  - recent_reauth
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - reauth
+  allowed_workflows:
+  - AccountDeletion
+  required_effects:
+  - effect.auth.reauthentication.check
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.auth.reauthentication.check
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.auth.reauthentication
+  - cap.auth.check
+  required_capabilities: []
+  required_capability_any:
+  - cap.auth.reauthentication
+  - cap.auth.check
+- id: legal_hold.check
+  aliases:
+  - db.check_legal_hold
+  - legal.hold.check
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - legal_hold_check
+  - approval_or_grace
+  allowed_workflows:
+  - AccountDeletion
+  required_effects:
+  - effect.storage.db.read
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.db.read
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.db.account.read
+  - cap.db.read
+  required_capabilities: []
+  required_capability_any:
+  - cap.db.account.read
+  - cap.db.read
+- id: grace_period.check
+  aliases:
+  - grace_period.check
+  - grace.period.check
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - grace_period_check
+  - approval_or_grace
+  allowed_workflows:
+  - AccountDeletion
+  required_effects:
+  - effect.storage.db.read
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.db.read
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.db.account.read
+  - cap.db.read
+  required_capabilities: []
+  required_capability_any:
+  - cap.db.account.read
+  - cap.db.read
+- id: account.soft_delete
+  aliases:
+  - db.soft_delete_user
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - soft_delete
+  allowed_workflows:
+  - AccountDeletion
+  required_effects:
+  - effect.storage.db.write
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.db.write
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.db.write
+  required_capabilities: []
+  required_capability_any:
+  - cap.db.write
+- id: db.hard_delete_user
+  aliases:
+  - account.hard_delete
+  - account.delete.permanent
+  - account.destroy
+  - account.erase
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - hard_delete
+  allowed_workflows:
+  - AccountDeletion
+  required_effect_families:
+  - destructive
+  forbidden_families:
+  - destructive_delete
+  allow_extra_effects: false
+  allowed_effect_families:
+  - destructive
+  forbidden_in_public_demo: true
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: auth.check_order_payment
+  aliases:
+  - auth.check_payment_authorization
+  - payment.authorization
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - authorization
+  allowed_workflows:
+  - OrderPayment
+  required_effects:
+  - effect.auth.authorization.check
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.auth.authorization.check
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.auth.check
+  required_capabilities: []
+  required_capability_any:
+  - cap.auth.check
+- id: payment.validate_amount
+  aliases:
+  - amount.validate
+  - validate_amount
+  - order.amount.match
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - amount_validation
+  allowed_workflows:
+  - OrderPayment
+  required_effects:
+  - effect.payment.validate.Amount
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.payment.validate.Amount
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.payment.validate
+  required_capabilities: []
+  required_capability_any:
+  - cap.payment.validate
+- id: db.insert_payment_intent
+  aliases:
+  - payment_intent.create
+  - insert_payment_intent
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - payment_intent
+  allowed_workflows:
+  - OrderPayment
+  required_effects:
+  - effect.storage.payment_intent.write
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.payment_intent.write
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.db.payment.write
+  - cap.db.write
+  required_capabilities: []
+  required_capability_any:
+  - cap.db.payment.write
+  - cap.db.write
+- id: db.get_payment_intent
+  aliases:
+  - payment_intent.read
+  - db.load_payment_intent
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - payment_intent
+  allowed_workflows:
+  - OrderPayment
+  required_effects:
+  - effect.storage.db.read
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.db.read
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.db.payment.read
+  required_capabilities: []
+  required_capability_any:
+  - cap.db.payment.read
+- id: payment.charge.sandbox
+  aliases:
+  - payment.charge_sandbox
+  - sandbox_payment
+  - payment.sandbox.charge
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - payment_charge
+  allowed_workflows:
+  - OrderPayment
+  required_effects:
+  - effect.external.payment.charge.sandbox
+  required_capability_prefixes: []
+  requires_policy_any:
+  - policy.payment_idempotency_required
+  - policy.idempotency_key_required
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.external.payment.charge.sandbox
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.payment.charge.sandbox
+  required_capabilities: []
+  required_capability_any:
+  - cap.payment.charge.sandbox
+- id: payment.charge.real
+  aliases:
+  - payment.charge.real
+  - payment.finalize.production
+  - payment.capture.live
+  - billing.capture.live
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - payment_charge
+  allowed_workflows: []
+  required_effect_families:
+  - payment
+  forbidden_families:
+  - payment_real
+  allow_extra_effects: false
+  allowed_effect_families:
+  - payment
+  forbidden_in_public_demo: true
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: db.update_payment_status
+  aliases:
+  - payment.mark_paid
+  - db.mark_payment_intent_succeeded
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - payment_status_record
+  allowed_workflows:
+  - OrderPayment
+  required_effects:
+  - effect.storage.db.write
+  required_capability_prefixes: []
+  allow_extra_effects: false
+  allowed_effects:
+  - effect.storage.db.write
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities:
+  - cap.db.payment.write
+  required_capabilities: []
+  required_capability_any:
+  - cap.db.payment.write
+- id: http.call
+  aliases:
+  - api.call
+  - external.call
+  - provider.call
+  trust_level: demo_human_reviewed
+  semantic_roles:
+  - external_network_call
+  allowed_workflows: []
+  required_effect_families:
+  - external
+  allow_extra_effects: false
+  allowed_effect_families:
+  - external
+  forbidden_in_public_demo: true
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: policy.enforce_no_user_enumeration
+  aliases:
+  - password_reset.enforce_no_user_enumeration
+  - response.generic_accepted
+  semantic_roles:
+  - no_user_enumeration
+  allowed_workflows:
+  - PasswordReset
+  required_effects: []
+  trust_level: demo_human_reviewed
+  allow_extra_effects: false
+  allowed_effects: []
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []
+- id: policy.enforce_export_field_allowlist
+  aliases:
+  - export.allowlist_fields
+  - privacy.allowlist_export_fields
+  semantic_roles:
+  - export_allowlist
+  allowed_workflows:
+  - PIIExportRequest
+  required_effects: []
+  trust_level: demo_human_reviewed
+  allow_extra_effects: false
+  allowed_effects: []
+  allow_extra_capabilities: false
+  allowed_capability_prefixes: []
+  allowed_capabilities: []
+  required_capabilities: []
+  required_capability_prefixes: []

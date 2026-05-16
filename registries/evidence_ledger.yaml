@@ -1,0 +1,34 @@
+version: pre_v1_phase3
+purpose: Bundled evidence ledger for AiNIR public demo. Draft-provided checked/reliability/source
+  fields are ignored and rejected; verified claims must bind to records here.
+records:
+- id: evidence.demo.safe_outbox
+  kind: verifier_report
+  status: checked
+  producer_kind: bundled_fixture
+  produced_by: ainir_public_demo
+  checked_by: ainir_public_verifier
+  reliability: 0.95
+  min_reliability: 0.8
+  supports_module: demo.create_user_outbox_safe
+  supports_workflow: CreateUser
+  supports_claims:
+  - claim.create_user_uses_outbox
+  claim_statement_sha256: c8fbaad5afbbe0aeb7322f1f2a68e0f9bac8bc7bd54683ac96e34629fe959504
+  artifact_ref: examples/create_user_outbox_safe/draft.yaml
+  artifact_sha256: ae6a7f9d3609e0a6c2b4397fdc3d9a3e9f043221633df82805855399b732d615
+- id: evidence.demo.pii_export_authorized
+  kind: verifier_report
+  status: checked
+  producer_kind: bundled_fixture
+  produced_by: ainir_public_demo
+  checked_by: ainir_public_verifier
+  reliability: 0.95
+  min_reliability: 0.8
+  supports_module: demo.pii_export_allowed_for_consumer_profile
+  supports_workflow: PIIExportRequest
+  supports_claims:
+  - claim.pii_export_authorized
+  claim_statement_sha256: 28584d42569219fd0588b8d45adf918ba8146beb42f6994b85aed6c74486b9a4
+  artifact_ref: fixtures/aivl_consumer_profile/pii_export_allowed/draft.yaml
+  artifact_sha256: 14a7262ee8b2f6d86daf234ddf14ecee66c125b8675ffb7518972c01f56fa03a

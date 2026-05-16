@@ -1,0 +1,19 @@
+review_package: ainir.pre_v1.public.launch_candidate
+status_claim: pre_v1_public_demo
+must_pass:
+  - public_prelaunch_check
+  - negative_conformance_eval
+  - golden_trace_replay
+  - safe_outbox_lowering
+  - empty_draft_refusal
+  - missing_examples_refusal
+must_not_claim:
+  - production_runtime
+  - v1_0_final
+  - complete_formal_proof_system
+manual_review:
+  - README first impression
+  - public_private_boundary clarity
+  - terminology conformance
+  - example breadth
+  - non_executable_fixture clarity

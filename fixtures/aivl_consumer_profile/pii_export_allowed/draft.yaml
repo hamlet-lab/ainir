@@ -1,0 +1,48 @@
+module: demo.pii_export_allowed_for_consumer_profile
+workflow: PIIExportRequest
+task: PreparePIIExportForConsumerProfile
+environment: staging
+executable: true
+input_type: PIIExportJob
+output_type: ExportPackageRef
+policies:
+- id: policy.pii_export_authorization_required
+- id: policy.export_package_must_be_encrypted
+- id: policy.export_fields_allowlist_required
+claims:
+- id: claim.pii_export_authorized
+  status: verified
+  statement: PII export is authorized by host-provided evidence for this synthetic
+    fixture.
+  evidence:
+  - id: evidence.demo.pii_export_authorized
+    kind: verifier_report
+operations:
+- id: op.authorize_export
+  op: auth.check_pii_export_authorization
+  effects:
+  - effect.auth.authorization.check
+  capabilities:
+  - cap.auth.check
+- id: op.enforce_field_allowlist
+  op: policy.enforce_export_field_allowlist
+  effects: []
+- id: op.read_user_pii
+  op: db.read_user_pii_bundle
+  effects:
+  - effect.privacy.pii.read
+  capabilities:
+  - cap.pii.read
+- id: op.encrypt_export_package
+  op: export.encrypt_pii_export_package
+  effects:
+  - effect.crypto.encrypt
+  capabilities:
+  - cap.crypto.encrypt
+- id: op.write_encrypted_package
+  op: storage.write_encrypted_pii_export_package
+  effects:
+  - effect.storage.export_package.write
+  capabilities:
+  - cap.export.storage.write
+return: state
