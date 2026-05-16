@@ -1,4 +1,4 @@
-# v1.0 RC Candidate Patch 6 — Release Identity and Cross-platform Temp Paths
+# v1.0 RC Candidate Patch 6 - Release Identity and Cross-platform Temp Paths
 
 Patch 6 keeps the AiNIR RC candidate scope unchanged and fixes two public-trial polish issues.
 

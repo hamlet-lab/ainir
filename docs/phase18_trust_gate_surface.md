@@ -1,5 +1,5 @@
 
-# Pre-v1 Phase 18 — Trust Gate Surface Consolidation
+# Pre-v1 Phase 18 - Trust Gate Surface Consolidation
 
 Phase 18 adds an AiNIR-owned Trust Gate surface. This phase is not an external integration phase and does not add a downstream adapter. It consolidates the
 pre-v1 safety gates into a stable decision/receipt interface.

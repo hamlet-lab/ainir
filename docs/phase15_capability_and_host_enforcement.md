@@ -1,4 +1,4 @@
-# Pre-v1 Phase 15 — Capability Least-Privilege and Host Enforcement Contract
+# Pre-v1 Phase 15 - Capability Least-Privilege and Host Enforcement Contract
 
 Phase 15 tightens two boundaries that remained after operation/effect contracts were stabilized.
 

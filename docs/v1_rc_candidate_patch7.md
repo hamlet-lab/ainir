@@ -1,4 +1,4 @@
-# v1.0 RC Candidate Patch 7 — Repo-local Temp Isolation Guard
+# v1.0 RC Candidate Patch 7 - Repo-local Temp Isolation Guard
 
 Patch 7 keeps the AiNIR RC candidate scope unchanged and tightens the private-trial runner around local temporary output paths.
 

@@ -6,16 +6,16 @@ Start here if you want to understand the system rather than the development hist
 
 ## Recommended reading path
 
-1. [`v1_rc_candidate.md`](v1_rc_candidate.md) — v1.0 RC candidate decision and boundary.
-2. [`v1_rc_scope.md`](v1_rc_scope.md) — what is frozen for RC review.
-3. [`pre_v1_status.md`](pre_v1_status.md) — current scope and what AiNIR does not claim.
-4. [`trust_gate.md`](trust_gate.md) — the unified decision surface.
-5. [`trust_receipt_persistence.md`](trust_receipt_persistence.md) — issuing and replaying TrustReceipts.
-6. [`negative_conformance_corpus.md`](negative_conformance_corpus.md) — synthetic fixtures that must be refused.
-7. [`golden_traces.md`](golden_traces.md) — deterministic replay expectations.
-8. [`lowering_gate.md`](lowering_gate.md) — when lowering is allowed or refused.
-9. [`verified_intent_packet.md`](verified_intent_packet.md) — optional future export surface.
-10. [`public_private_boundary.md`](public_private_boundary.md) — what belongs in the public repo.
+1. [`v1_rc_candidate.md`](v1_rc_candidate.md) - v1.0 RC candidate decision and boundary.
+2. [`v1_rc_scope.md`](v1_rc_scope.md) - what is frozen for RC review.
+3. [`pre_v1_status.md`](pre_v1_status.md) - current scope and what AiNIR does not claim.
+4. [`trust_gate.md`](trust_gate.md) - the unified decision surface.
+5. [`trust_receipt_persistence.md`](trust_receipt_persistence.md) - issuing and replaying TrustReceipts.
+6. [`negative_conformance_corpus.md`](negative_conformance_corpus.md) - synthetic fixtures that must be refused.
+7. [`golden_traces.md`](golden_traces.md) - deterministic replay expectations.
+8. [`lowering_gate.md`](lowering_gate.md) - when lowering is allowed or refused.
+9. [`verified_intent_packet.md`](verified_intent_packet.md) - optional future export surface.
+10. [`public_private_boundary.md`](public_private_boundary.md) - what belongs in the public repo.
 
 ## Core architecture docs
 
@@ -58,8 +58,8 @@ Start here if you want to understand the system rather than the development hist
 
 Phase-specific documents are kept for traceability. They are not required for a first read. Read them when you need to understand why a particular gate or fixture was added.
 
-- [v1.0 RC Candidate Patch 4 — Registry and Classifier Consistency](v1_rc_candidate_patch4.md)
+- [v1.0 RC Candidate Patch 4 - Registry and Classifier Consistency](v1_rc_candidate_patch4.md)
 - [Cross-platform output paths](cross_platform_output_paths.md)
 
-- [v1.0 RC Candidate Patch 6 — Release Identity and Cross-platform Temp Paths](v1_rc_candidate_patch6.md)
-- [v1.0 RC Candidate Patch 7 — Repo-local Temp Isolation Guard](v1_rc_candidate_patch7.md)
+- [v1.0 RC Candidate Patch 6 - Release Identity and Cross-platform Temp Paths](v1_rc_candidate_patch6.md)
+- [v1.0 RC Candidate Patch 7 - Repo-local Temp Isolation Guard](v1_rc_candidate_patch7.md)

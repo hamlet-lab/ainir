@@ -1,4 +1,4 @@
-# Pre-v1 Phase 19 — TrustReceipt Persistence and Replay
+# Pre-v1 Phase 19 - TrustReceipt Persistence and Replay
 
 Phase 18 consolidated the AiNIR Trust Gate decision surface.
 Phase 19 makes that decision reproducible by adding TrustReceipt persistence and

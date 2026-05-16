@@ -1,4 +1,4 @@
-# Pre-v1 Phase 21 — Launch Readiness with TrustReceipt Replay
+# Pre-v1 Phase 21 - Launch Readiness with TrustReceipt Replay
 
 Phase 21 does not add a new integration or downstream consumer. It turns the
 TrustReceipt replay checks from Phase 19/20 into a release-readiness gate.

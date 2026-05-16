@@ -1,4 +1,4 @@
-# Pre-v1 Phase 25 — VerifiedIntentPacket Contract Strictness and Registry Consistency
+# Pre-v1 Phase 25 - VerifiedIntentPacket Contract Strictness and Registry Consistency
 
 Phase 25 tightens the optional `VerifiedIntentPacket` export surface so its runtime validator, JSON Schema, and consumer-profile registry express the same contract.
 

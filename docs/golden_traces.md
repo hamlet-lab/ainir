@@ -1,4 +1,4 @@
-# Pre-v1 Phase 8 — Conformance Golden Traces
+# Pre-v1 Phase 8 - Conformance Golden Traces
 
 Phase 8 adds a deterministic replay harness for the public AiNIR demo pipeline.
 

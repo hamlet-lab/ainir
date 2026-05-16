@@ -1,4 +1,4 @@
-# Pre-v1 Phase 13 — Release Candidate Reassessment and External-Style Review Package
+# Pre-v1 Phase 13 - Release Candidate Reassessment and External-Style Review Package
 
 AiNIR remains in **Pre-v1 Architecture Hardening**. This phase does not add new verifier features.
 

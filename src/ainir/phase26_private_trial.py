@@ -384,7 +384,7 @@ def run_phase26_private_trial(out_dir: str | Path) -> dict[str, Any]:
     }
     (out_dir / 'phase26_private_trial_report.json').write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
     lines = [
-        '# AiNIR Pre-v1 Phase 26 — GitHub Private Trial Simulation',
+        '# AiNIR Pre-v1 Phase 26 - GitHub Private Trial Simulation',
         '',
         f"overall_status: {overall}",
         f"decision: {decision}",

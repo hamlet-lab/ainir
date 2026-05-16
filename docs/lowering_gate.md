@@ -1,4 +1,4 @@
-# Pre-v1 Phase 6 — Lowering Eligibility Gate and Host Enforcement Contract
+# Pre-v1 Phase 6 - Lowering Eligibility Gate and Host Enforcement Contract
 
 AiNIR public demo lowering is not an authorization mechanism by itself. It is a
 post-verification transformation that may only run after the same draft passes

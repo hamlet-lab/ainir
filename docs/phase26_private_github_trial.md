@@ -1,5 +1,5 @@
 
-# Pre-v1 Phase 26 — GitHub Private Trial Simulation
+# Pre-v1 Phase 26 - GitHub Private Trial Simulation
 
 Phase 26 is not a new verifier feature. It is a launch-readiness simulation that runs the public candidate in a fresh temporary copy, writes all command outputs outside the repository, and confirms that the repo remains clean after the trial commands.
 
