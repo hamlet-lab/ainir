@@ -33,7 +33,7 @@ def test_phase26_ci_uses_private_trial_gate():
 
 
 def test_phase26_copy_temp_parent_is_outside_repo(monkeypatch, tmp_path):
-    repo_local_temp = ROOT / '.codex_tmp'
+    repo_local_temp = ROOT / '.ainir_local_tmp'
     repo_local_temp.mkdir(exist_ok=True)
     monkeypatch.setattr(tempfile, 'gettempdir', lambda: str(repo_local_temp))
     parent = _safe_trial_temp_parent()
@@ -42,7 +42,7 @@ def test_phase26_copy_temp_parent_is_outside_repo(monkeypatch, tmp_path):
 
 def test_phase26_local_temp_patterns_are_ignored(tmp_path):
     root = Path(__file__).resolve().parents[1]
-    local_temp = root / '.codex_tmp'
+    local_temp = root / '.ainir_local_tmp'
     local_temp.mkdir(exist_ok=True)
     try:
         result = _scan_packaging_cleanliness(root)

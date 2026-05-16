@@ -32,9 +32,9 @@ PRIVATE_ARCHIVE_MARKERS = {'ALL_IN_ONE', 'PRIVATE_RC', 'private_rc', 'review_pac
 # Phase 26 reports a warning and ignores them during temp-copy setup. If they
 # are Git-tracked, Phase 26 fails the tracked-file scan.
 LOCAL_TEMP_DIR_PATTERNS = (
-    '.codex_tmp',
     '.ainir_tmp',
-    'codex_ainir_*',
+    '.ainir_local_tmp',
+    'ainir_local_tmp_*',
     'github_private_trial_results',
     'ainir_demo_results',
     'ainir_negative_conformance',

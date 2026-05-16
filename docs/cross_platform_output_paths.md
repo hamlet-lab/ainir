@@ -29,7 +29,7 @@ For private-trial and release-candidate checks, keep `TMP`, `TEMP`, and
 `AINIR_TEMP_ROOT` outside the repository checkout. A repo-local temp directory
 can make a trial copy see its own generated output. The Phase 26 runner now
 falls back to a sibling temp copy if the OS temp directory resolves inside the
-repo, and it ignores common local temp folders such as `.codex_tmp/` and
+repo, and it ignores common local temp folders such as `.ainir_local_tmp/` and
 `ainir_phase*_trial_*/`. Still, the recommended practice is to use the OS temp
 directory or an explicit path outside the checkout.
 
