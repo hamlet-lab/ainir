@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ainir-public-demo"
-version = "0.1.0"
+version = "1.0.0rc1"
 description = "AiNIR v1.0 RC candidate public demo: inspecting AI-generated program semantics before lowering or execution."
 readme = "README.md"
 authors = [{name = "Lee Yoon Kyu"}]
@@ -15,6 +15,10 @@ dependencies = ["PyYAML>=6"]
 
 [project.scripts]
 ainir = "ainir.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/hamlet-lab/ainir"
+Repository = "https://github.com/hamlet-lab/ainir"
 
 [tool.setuptools.packages.find]
 where = ["src"]

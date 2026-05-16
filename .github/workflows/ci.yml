@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -16,7 +19,7 @@ jobs:
         with:
           node-version: '20'
       - name: Install TypeScript for skeleton compile checks
-        run: npm install -g typescript
+        run: npm install -g typescript@5
       - name: Install package and test dependencies
         run: |
           python -m pip install --upgrade pip
