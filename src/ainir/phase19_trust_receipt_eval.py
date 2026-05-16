@@ -2,17 +2,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import shutil
 
 from .execution_context import TrustedExecutionContext
+from .temp_paths import recreate_output_dir
 from .trust_receipt_store import issue_trust_receipt, replay_trust_receipt
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def run_phase19_trust_receipt_eval(out_dir: str | Path = "phase19_trust_receipt_results") -> dict:
-    out = Path(out_dir)
-    if out.exists():
-        shutil.rmtree(out)
-    out.mkdir(parents=True, exist_ok=True)
+    out = recreate_output_dir(out_dir, protected_roots=[ROOT])
     context = TrustedExecutionContext.public_demo()
     safe_draft = Path("examples/create_user_outbox_safe/draft.yaml")
     blocked_draft = Path("examples/order_payment_real_payment_blocked/draft.yaml")

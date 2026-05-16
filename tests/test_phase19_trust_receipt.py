@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from ainir.execution_context import TrustedExecutionContext
 from ainir.phase19_trust_receipt_eval import run_phase19_trust_receipt_eval
 from ainir.trust_receipt_store import issue_trust_receipt, replay_trust_receipt
@@ -40,3 +42,9 @@ def test_phase19_eval_passes(tmp_path: Path) -> None:
     summary = run_phase19_trust_receipt_eval(tmp_path / "eval")
     assert summary["overall_status"] == "passed"
     assert summary["passed"] == summary["case_count"]
+
+
+def test_phase19_eval_refuses_repository_root_output() -> None:
+    root = Path(__file__).resolve().parents[1]
+    with pytest.raises(ValueError, match="protected output directory"):
+        run_phase19_trust_receipt_eval(root)

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-import os
-import tempfile
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 from ainir.phase30_v1_rc_candidate import run_phase30_v1_rc_candidate_check
 from ainir.phase26_private_trial import _safe_trial_temp_parent

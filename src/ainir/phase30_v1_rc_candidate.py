@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -70,7 +71,10 @@ def _manifest_check() -> dict[str, Any]:
 
 def _run_command(name: str, cmd: list[str], timeout: int = 240) -> dict[str, Any]:
     print(f"[phase30] starting {name}", flush=True)
-    proc = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, timeout=timeout)
+    env = os.environ.copy()
+    src_path = str(ROOT / "src")
+    env["PYTHONPATH"] = src_path + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    proc = subprocess.run(cmd, cwd=ROOT, env=env, text=True, capture_output=True, timeout=timeout)
     return _step(
         name,
         "passed" if proc.returncode == 0 else "failed",

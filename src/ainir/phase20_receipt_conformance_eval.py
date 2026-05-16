@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import shutil
 from typing import Any
 
 from .golden_trace_harness import run_golden_traces
 from .phase19_trust_receipt_eval import run_phase19_trust_receipt_eval
+from .temp_paths import recreate_output_dir
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def run_phase20_receipt_conformance_eval(out_dir: str | Path = "phase20_receipt_conformance_results") -> dict[str, Any]:
@@ -15,10 +17,7 @@ def run_phase20_receipt_conformance_eval(out_dir: str | Path = "phase20_receipt_
     Phase 19 made receipt issue/replay possible. Phase 20 makes receipt replay a
     first-class conformance expectation in golden traces and release checks.
     """
-    out = Path(out_dir)
-    if out.exists():
-        shutil.rmtree(out)
-    out.mkdir(parents=True, exist_ok=True)
+    out = recreate_output_dir(out_dir, protected_roots=[ROOT])
 
     golden = run_golden_traces("golden_traces.yaml", out / "golden_traces", "public_demo")
     phase19 = run_phase19_trust_receipt_eval(out / "phase19_receipt_replay")
