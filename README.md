@@ -17,6 +17,20 @@ boundaries explicit? Can the draft be lowered safely?
 
 Created by **Lee Yoon Kyu** under **[AIOE]**.
 
+## 한국어 요약
+
+AiNIR는 AI가 만든 workflow 출력을 곧바로 사실이나 실행 가능한 명령으로
+보지 않습니다. 그 출력이 행동으로 넘어가기 전에 충분한 근거,
+semantic contract, capability 경계, 신뢰할 수 있는 실행 맥락을 갖추었는지 검사하는
+semantic trust layer입니다.
+
+간단히 말하면, AiNIR는 "모델이 그럴듯한 답을 했는가?"보다 "그 답을 실행이나
+handoff로 넘겨도 될 만큼 근거가 갖춰졌는가?"를 묻습니다.
+
+이 공개 저장소는 v1.0 RC candidate 공개 데모입니다. v1.0 final이나
+production runtime은 아니며, private review archive와 전체 연구 기록은
+포함하지 않습니다.
+
 ## At a glance
 
 AiNIR is a compact public demo of a trust boundary for AI-generated program
@@ -191,6 +205,30 @@ That means AiNIR looks beyond field presence. It checks evidence bindings,
 safety-critical effects, capability contracts, operation specs, trusted
 execution context, transaction boundaries, lowering eligibility, and replayable
 trust receipts.
+
+## Toward Warranted AI
+
+AiNIR is a step toward **warranted AI execution**: deciding when a
+model-generated claim has enough evidence, semantic contract support,
+capability discipline, trusted context, and transaction binding to move toward
+handoff or execution.
+
+Guardrails often ask whether an output is allowed. Evals often ask whether an
+output was good. AiNIR asks whether an AI-generated semantic claim is warranted
+enough to become an action.
+
+In this public RC candidate, that warrant remains bounded to the registered demo
+workflows, bundled evidence, and explicit non-production scope.
+
+## Related areas
+
+AiNIR sits near runtime verification for LLM agents, evidence-gated execution,
+semantic contracts for AI agents, pre-execution validation, agent governance,
+tool contracts, policy-as-code, and workflow conformance testing.
+
+It differs from output guardrails and general evals by focusing on the
+claim-to-action boundary: whether a model-generated workflow claim is supported
+well enough to move toward lowering, handoff, or execution.
 
 ## Trust Gate example
 
