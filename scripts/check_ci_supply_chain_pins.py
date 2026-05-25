@@ -8,9 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / '.github' / 'workflows' / 'ci.yml'
 EXPECTED_ACTIONS = {
-    'actions/checkout': '34e114876b0b11c390a56381ad16ebd13914f8d5',
-    'actions/setup-python': 'a26af69be951a213d495a4c3e4e4022e16d87065',
-    'actions/setup-node': '49933ea5288caeca8642d1e84afbd3f7d6820020',
+    'actions/checkout': '93cb6efe18208431cddfb8368fd83d5badbf9bfd',
+    'actions/setup-python': 'a309ff8b426b58ec0e2a45f0f869d46889d02405',
+    'actions/setup-node': 'a0853c24544627f65ddf259abe73b1d18a591444',
 }
 
 

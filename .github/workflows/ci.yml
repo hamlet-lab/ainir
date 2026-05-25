@@ -7,27 +7,24 @@ on:
 permissions:
   contents: read
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      # Pinned to actions/checkout v4 release tag commit 34e114876b0b11c390a56381ad16ebd13914f8d5.
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      # Pinned to actions/checkout v5 release tag commit 93cb6efe18208431cddfb8368fd83d5badbf9bfd.
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           persist-credentials: false
-      # Pinned to actions/setup-python v5 release tag commit a26af69be951a213d495a4c3e4e4022e16d87065.
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      # Pinned to actions/setup-python v6 release tag commit a309ff8b426b58ec0e2a45f0f869d46889d02405.
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: requirements.lock.txt
-      # Pinned to actions/setup-node v4 release tag commit 49933ea5288caeca8642d1e84afbd3f7d6820020.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      # Pinned to actions/setup-node v5 release tag commit a0853c24544627f65ddf259abe73b1d18a591444.
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Install Node dependencies from package-lock
         run: |
           npm ci
