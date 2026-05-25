@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-from .core import load_draft
+from .core import load_draft, load_yaml_no_duplicate_keys
 from .execution_context import TrustedExecutionContext
 from .verified_intent_export import export_verified_intent_packet, validate_verified_intent_packet
 
@@ -19,7 +19,7 @@ def run_phase23_verified_intent_hardening_eval(out_dir: str | Path = "phase23_ve
     context = TrustedExecutionContext.public_demo()
     repo_root = Path.cwd()
     safe_path = repo_root / "fixtures" / "aivl_consumer_profile" / "pii_export_allowed" / "draft.yaml"
-    base = yaml.safe_load(safe_path.read_text(encoding="utf-8"))
+    base = load_yaml_no_duplicate_keys(safe_path.read_text(encoding="utf-8"))
     cases: list[dict[str, Any]] = []
 
     def add_result(case_id: str, result, expected_status: str, expected_reason: str | None = None, extra_check=None) -> None:
@@ -72,7 +72,7 @@ def run_phase23_verified_intent_hardening_eval(out_dir: str | Path = "phase23_ve
         no_evidence = copy.deepcopy(base)
         no_evidence["module"] = "demo.pii_export_without_evidence_blocked"
         no_evidence["claims"] = []
-        add_result("pii_export_without_evidence_blocked", export_verified_intent_packet(load_draft(write_temp(temp, "no_evidence", no_evidence)), context, "AIVL"), "refused", "profile_requires_verified_authorization_evidence")
+        add_result("pii_export_without_evidence_blocked", export_verified_intent_packet(load_draft(write_temp(temp, "no_evidence", no_evidence)), context, "AIVL"), "refused", "trust_gate_not_passed")
 
         ambiguous = copy.deepcopy(base)
         ambiguous["ambiguity"] = {"status": "requires_clarification", "unresolved_ambiguities": [{"slot": "top_customers_metric", "question": "Does top mean revenue, order count, or recency?"}]}
@@ -99,7 +99,7 @@ def run_phase23_verified_intent_hardening_eval(out_dir: str | Path = "phase23_ve
         raw_classification["field_classifications"] = [{"source": "customers", "field_path": ["email"], "classification": "PublicText"}]
         add_result("raw_classification_override_refused", export_verified_intent_packet(load_draft(write_temp(temp, "raw_classification", raw_classification)), context, "AIVL"), "refused", "raw_field_classifications_slot_not_exportable")
 
-        create_user = yaml.safe_load((repo_root / "examples" / "create_user_outbox_safe" / "draft.yaml").read_text(encoding="utf-8"))
+        create_user = load_yaml_no_duplicate_keys((repo_root / "examples" / "create_user_outbox_safe" / "draft.yaml").read_text(encoding="utf-8"))
         add_result("unsupported_workflow_create_user_refused", export_verified_intent_packet(load_draft(write_temp(temp, "create_user", create_user)), context, "AIVL"), "refused", "consumer_profile_does_not_support_workflow")
 
         bad_packet = copy.deepcopy(safe_result.packet)

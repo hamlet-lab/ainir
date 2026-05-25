@@ -24,8 +24,9 @@ from .core import DraftModule, load_draft
 from .execution_context import TrustedExecutionContext
 from .trust_gate import evaluate_trust_gate
 from .operation_registry import get_operation_registry
+from .evidence_ledger import get_evidence_ledger
 
-_PACKET_VERSION = "pre_v1_phase25"
+_PACKET_VERSION = "pre_v1_phase25_defensive_integrity_packet_integrity"
 _PROFILE_AIVL = "AIVLConsumerProfile"
 _SUPPORTED_PROFILE_WORKFLOWS = {
     _PROFILE_AIVL: {"PIIExportRequest"},
@@ -57,7 +58,21 @@ _GROUNDING_STATUS_ALLOWED_KEYS = {"status", "reason", "required_consumer_checks"
 _AMBIGUITY_ALLOWED_KEYS = {"status", "unresolved_ambiguities"}
 _OPERATION_CONSTRAINTS_ALLOWED_KEYS = {"allowed_operations", "denied_operations", "requires_human_review", "semantic_roles", "canonical_operations"}
 _SECURITY_CLASSIFICATION_ALLOWED_KEYS = {"classification_scope", "classification", "source", "status", "field_path"}
-_RECEIPT_LINKS_ALLOWED_KEYS = {"ainir_receipt_id", "draft_hash", "registry_hash", "verifier_report_hash", "policy_hash"}
+_RECEIPT_LINKS_ALLOWED_KEYS = {
+    "ainir_receipt_id",
+    "draft_hash",
+    "raw_source_sha256",
+    "canonical_draft_sha256",
+    "registry_hash",
+    "registry_snapshot_hash",
+    "verifier_report_hash",
+    "policy_hash",
+    "stable_receipt_projection_hash",
+    "gate_results_hash",
+    "evidence_summary_hash",
+    "trusted_context",
+}
+_RECEIPT_LINKS_REQUIRED_KEYS = set(_RECEIPT_LINKS_ALLOWED_KEYS)
 _CANONICAL_OPERATION_ALLOWED_KEYS = {"operation_id", "canonical_op", "semantic_roles", "effects", "capabilities"}
 
 _PII_EXPORT_REQUIRED_CONTRACTS = {
@@ -144,6 +159,7 @@ _RAW_SLOT_FIELDS = {
 _CLASSIFICATION_ENUM = {"PII", "Identifier", "Secret", "PublicText", "Internal"}
 _SHA_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 _PACKET_ID_RE = re.compile(r"^ainir\.verified_intent\.[a-f0-9]{20}$|^ainir\.verified_intent\.fixture\.[A-Za-z0-9_.-]+$")
+_RECEIPT_ID_RE = re.compile(r"^ainir\.trust\.receipt\.(?:[a-f0-9]{20}|fixture(?:\.[A-Za-z0-9_.:-]+)?|example\.[A-Za-z0-9_.:-]+)$")
 
 
 @dataclass(frozen=True)
@@ -151,12 +167,16 @@ class VerifiedIntentExportResult:
     status: str
     packet: dict[str, Any] | None
     reasons: tuple[str, ...]
+    decision: dict[str, Any] | None = None
+    receipt: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "status": self.status,
             "packet": self.packet,
             "reasons": list(self.reasons),
+            "decision": self.decision,
+            "receipt": self.receipt,
         }
 
 
@@ -171,7 +191,10 @@ def export_verified_intent_packet(
     downstream compiler/runtime. A failed/held/invalid Trust Gate decision never
     exports a verified packet.
     """
-    context = context or TrustedExecutionContext.public_demo()
+    if context is None:
+        context = TrustedExecutionContext.from_environment("public_demo", source="default", purpose="verified_intent_export")
+    elif context.purpose != "verified_intent_export":
+        context = TrustedExecutionContext.from_environment(context.environment, source=context.source, purpose="verified_intent_export")
     profile = _normalize_profile(consumer_profile)
     if profile != _PROFILE_AIVL:
         return VerifiedIntentExportResult("refused", None, ("unsupported_consumer_profile",))
@@ -190,15 +213,59 @@ def export_verified_intent_packet(
         return VerifiedIntentExportResult("refused", None, ("profile_requires_verified_authorization_evidence",))
 
     packet = _build_packet(draft, context, decision, profile)
+    packet_hash = _canonical_verified_intent_packet_hash(packet)
+    # Bind the handoff payload to the exact TrustReceipt sidecar.  The packet
+    # cannot safely carry a self-hash as part of its own canonical payload, so
+    # the matching receipt/decision bundle carries the packet hash.
+    decision = dict(decision)
+    receipt = dict(decision.get("receipt", {})) if isinstance(decision.get("receipt"), Mapping) else {}
+    if receipt:
+        receipt["verified_intent_packet_canonical_sha256"] = packet_hash
+        receipt["verified_intent_packet_hash_algorithm"] = "canonical_json_sha256"
+        # The packet hash is part of the receipt stable projection for VerifiedIntent
+        # bundles. Recompute after attaching it so replay cannot accept a
+        # packet/receipt/manifest set that merely updates all mutable sidecars.
+        from .trust_receipt_store import stable_receipt_projection_hash
+        receipt["stable_receipt_projection_hash"] = stable_receipt_projection_hash(receipt)
+        packet_links = packet.get("slots", {}).get("receipt_links", {}) if isinstance(packet.get("slots"), Mapping) else {}
+        if isinstance(packet_links, dict):
+            packet_links["stable_receipt_projection_hash"] = receipt["stable_receipt_projection_hash"]
+        decision["receipt"] = receipt
     validation_errors = validate_verified_intent_packet(packet)
     if validation_errors:
         return VerifiedIntentExportResult("refused", None, tuple("packet_validation:" + e for e in validation_errors))
-    return VerifiedIntentExportResult("exported", packet, ())
+    return VerifiedIntentExportResult("exported", packet, (), dict(decision), receipt)
 
 
 def export_verified_intent_packet_from_path(path: str | Path, env: str = "public_demo", consumer_profile: str = _PROFILE_AIVL) -> VerifiedIntentExportResult:
     context = TrustedExecutionContext.from_environment(env, source="cli", purpose="verified_intent_export")
     return export_verified_intent_packet(load_draft(path), context, consumer_profile)
+
+
+def _canonical_json_hash(value: Any) -> str:
+    return "sha256:" + sha256(json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _canonical_verified_intent_packet_payload(packet: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the packet payload used for tamper-evident hashing.
+
+    VerifiedIntentPacket includes receipt_links.stable_receipt_projection_hash,
+    while the receipt stable projection includes the packet hash. To avoid an
+    impossible hash cycle, the packet hash normalizes that one back-reference.
+    The field itself is still validated separately during handoff/replay.
+    """
+    payload = json.loads(json.dumps(packet, sort_keys=True, ensure_ascii=False))
+    try:
+        links = payload["slots"]["receipt_links"]
+        if isinstance(links, dict) and "stable_receipt_projection_hash" in links:
+            links["stable_receipt_projection_hash"] = "sha256:" + ("0" * 64)
+    except Exception:
+        pass
+    return payload
+
+
+def _canonical_verified_intent_packet_hash(packet: Mapping[str, Any]) -> str:
+    return _canonical_json_hash(_canonical_verified_intent_packet_payload(packet))
 
 
 def validate_verified_intent_packet(packet: Mapping[str, Any]) -> list[str]:
@@ -304,6 +371,13 @@ def _validate_evidence_bindings_slot(errors: list[str], value: Any, workflow: st
             errors.append(f"evidence_bindings[{idx}].claim is not a supported verified export claim")
         if not isinstance(ev.get("evidence_id"), str) or not ev.get("evidence_id"):
             errors.append(f"evidence_bindings[{idx}].evidence_id must be a non-empty string")
+        else:
+            try:
+                eid = str(ev.get("evidence_id"))
+                if eid not in get_evidence_ledger().records and not eid.startswith("evidence.fixture."):
+                    errors.append(f"evidence_bindings[{idx}].evidence_id is not present in the evidence ledger")
+            except Exception as exc:
+                errors.append(f"evidence_bindings[{idx}].evidence ledger could not be checked: {type(exc).__name__}")
         if ev.get("issuer") != "ainir_evidence_ledger":
             errors.append(f"evidence_bindings[{idx}].issuer must be ainir_evidence_ledger")
         if ev.get("status") != "verified" or ev.get("ledger_bound") is not True:
@@ -514,14 +588,27 @@ def _validate_receipt_links_slot(errors: list[str], value: Any) -> None:
         errors.append("receipt_links slot must be an object")
         return
     _check_unknown_keys(errors, value, _RECEIPT_LINKS_ALLOWED_KEYS, "receipt_links")
-    _check_required(errors, value, _RECEIPT_LINKS_ALLOWED_KEYS, "receipt_links")
-    if not str(value.get("ainir_receipt_id", "")).startswith("ainir.trust.receipt."):
-        errors.append("receipt_links.ainir_receipt_id must reference an AiNIR TrustReceipt")
-    for field in ("draft_hash", "registry_hash", "verifier_report_hash", "policy_hash"):
+    _check_required(errors, value, _RECEIPT_LINKS_REQUIRED_KEYS, "receipt_links")
+    rid = str(value.get("ainir_receipt_id", ""))
+    if not _RECEIPT_ID_RE.match(rid):
+        errors.append("receipt_links.ainir_receipt_id must reference an issued, fixture, or example AiNIR TrustReceipt")
+    for field in ("draft_hash", "raw_source_sha256", "canonical_draft_sha256", "registry_hash", "registry_snapshot_hash", "verifier_report_hash", "policy_hash", "stable_receipt_projection_hash", "gate_results_hash", "evidence_summary_hash"):
         if not _SHA_RE.match(str(value.get(field, ""))):
             errors.append(f"receipt_links.{field} must be sha256:<64 lowercase hex>")
+    trusted_context = value.get("trusted_context")
+    if not isinstance(trusted_context, Mapping):
+        errors.append("receipt_links.trusted_context must be an object")
+    else:
+        if trusted_context.get("environment") not in {"public_demo", "ci", "test"}:
+            errors.append("receipt_links.trusted_context.environment must be public_demo/ci/test")
+        if not isinstance(trusted_context.get("source"), str) or not trusted_context.get("source"):
+            errors.append("receipt_links.trusted_context.source must be non-empty")
+        if trusted_context.get("purpose") != "verified_intent_export":
+            errors.append("receipt_links.trusted_context.purpose must be verified_intent_export")
     if value.get("policy_hash") == value.get("registry_hash"):
         errors.append("receipt_links.policy_hash must be distinct from receipt_links.registry_hash")
+    if value.get("draft_hash") != value.get("canonical_draft_sha256"):
+        errors.append("receipt_links.draft_hash must alias canonical_draft_sha256 in this public profile")
 
 
 def _normalize_profile(profile: str) -> str:
@@ -542,6 +629,9 @@ def _pre_export_profile_errors(draft: DraftModule, profile: str) -> list[str]:
     ambiguity = _ambiguity_slot(draft)
     if ambiguity["status"] != "resolved" or ambiguity.get("unresolved_ambiguities"):
         errors.append("unresolved_ambiguity")
+    # PII authorization evidence is enforced after the Trust Gate so missing
+    # ledger-bound evidence is reported as a Trust Gate failure rather than a
+    # consumer-profile preflight shortcut.
     return errors
 
 
@@ -644,15 +734,122 @@ def _build_packet(draft: DraftModule, context: TrustedExecutionContext, decision
             "security_classifications": _derived_field_classifications(draft),
             "receipt_links": {
                 "ainir_receipt_id": receipt.get("receipt_id"),
-                "draft_hash": receipt.get("draft_hash"),
+                # Compatibility alias retained for earlier packet consumers.
+                "draft_hash": receipt.get("canonical_draft_sha256") or receipt.get("draft_hash"),
+                "raw_source_sha256": receipt.get("raw_source_sha256"),
+                "canonical_draft_sha256": receipt.get("canonical_draft_sha256") or receipt.get("draft_hash"),
+                # registry_hash is the old safety-registry alias; registry_snapshot_hash is the authoritative v2 link.
                 "registry_hash": receipt.get("safety_registry_hash") or receipt.get("registry_hash"),
+                "registry_snapshot_hash": receipt.get("registry_snapshot_hash"),
                 "verifier_report_hash": receipt.get("verifier_report_hash"),
                 "policy_hash": _consumer_profile_policy_hash(draft.workflow),
+                "stable_receipt_projection_hash": receipt.get("stable_receipt_projection_hash"),
+                "gate_results_hash": _canonical_json_hash(receipt.get("gate_results") if isinstance(receipt.get("gate_results"), Mapping) else {}),
+                "evidence_summary_hash": _canonical_json_hash(receipt.get("evidence_summary") if isinstance(receipt.get("evidence_summary"), Mapping) else {}),
+                "trusted_context": receipt.get("trusted_context") if isinstance(receipt.get("trusted_context"), Mapping) else {},
             },
         },
     }
 
 
+
+def verify_verified_intent_packet_handoff(
+    packet: Mapping[str, Any],
+    receipt: Mapping[str, Any] | None = None,
+    replay_report: Mapping[str, Any] | None = None,
+    *,
+    require_receipt_replay: bool = True,
+) -> list[str]:
+    """Verify a VerifiedIntentPacket against replayed AiNIR warrant.
+
+    validate_verified_intent_packet() is a strict shape/profile validator. This
+    function is stronger: it binds the packet payload to the matching receipt,
+    requires a passed TrustReceipt replay report by default, and checks consumer
+    policy/registry aliases so self-consistent fake receipt-like objects are not
+    accepted as handoff warrant.
+    """
+    errors = list(validate_verified_intent_packet(packet))
+    if errors:
+        return errors
+    if receipt is None or not isinstance(receipt, Mapping):
+        errors.append("handoff verification requires the matching TrustReceipt artifact")
+        return errors
+    if require_receipt_replay:
+        # This API accepts only an actual ReceiptReplayReport instance.  Passing
+        # a caller-authored dict is treated as link-comparison data, not replay
+        # authority; use verify_verified_intent_packet_handoff_from_files() for
+        # normal bundle verification.
+        from .trust_receipt_store import ReceiptReplayReport
+        if not isinstance(replay_report, ReceiptReplayReport):
+            errors.append("handoff verification requires a ReceiptReplayReport produced by replay_trust_receipt")
+            return errors
+        replay_payload = replay_report.as_dict()
+        if replay_payload.get("overall_status") != "passed":
+            errors.append("TrustReceipt replay report must have overall_status=passed")
+        if replay_payload.get("receipt_id") != receipt.get("receipt_id"):
+            errors.append("TrustReceipt replay report receipt_id does not match the supplied receipt")
+        replay_receipt = replay_payload.get("receipt")
+        if isinstance(replay_receipt, Mapping) and replay_receipt.get("stable_receipt_projection_hash") != receipt.get("stable_receipt_projection_hash"):
+            errors.append("TrustReceipt replay report receipt projection does not match the supplied receipt")
+    slots = packet.get("slots") if isinstance(packet, Mapping) else {}
+    links = slots.get("receipt_links") if isinstance(slots, Mapping) else {}
+    if not isinstance(links, Mapping):
+        return errors + ["receipt_links slot must be an object"]
+    comparisons = {
+        "ainir_receipt_id": receipt.get("receipt_id"),
+        "raw_source_sha256": receipt.get("raw_source_sha256"),
+        "canonical_draft_sha256": receipt.get("canonical_draft_sha256") or receipt.get("draft_hash"),
+        "registry_snapshot_hash": receipt.get("registry_snapshot_hash"),
+        "verifier_report_hash": receipt.get("verifier_report_hash"),
+        "stable_receipt_projection_hash": receipt.get("stable_receipt_projection_hash"),
+        "gate_results_hash": _canonical_json_hash(receipt.get("gate_results") if isinstance(receipt.get("gate_results"), Mapping) else {}),
+        "evidence_summary_hash": _canonical_json_hash(receipt.get("evidence_summary") if isinstance(receipt.get("evidence_summary"), Mapping) else {}),
+    }
+    for field, expected in comparisons.items():
+        if links.get(field) != expected:
+            errors.append(f"receipt_links.{field} does not match TrustReceipt")
+    if links.get("trusted_context") != receipt.get("trusted_context"):
+        errors.append("receipt_links.trusted_context does not match TrustReceipt")
+    profile_scope = slots.get("profile_scope") if isinstance(slots, Mapping) else {}
+    workflow = str(profile_scope.get("workflow", "")) if isinstance(profile_scope, Mapping) else ""
+    expected_policy_hash = _consumer_profile_policy_hash(workflow)
+    if links.get("policy_hash") != expected_policy_hash:
+        errors.append("receipt_links.policy_hash does not match the consumer-profile policy hash")
+    if links.get("registry_hash") != receipt.get("safety_registry_hash"):
+        errors.append("receipt_links.registry_hash compatibility alias does not match TrustReceipt.safety_registry_hash")
+    packet_hash = _canonical_verified_intent_packet_hash(packet)
+    expected_packet_hash = receipt.get("verified_intent_packet_canonical_sha256")
+    if expected_packet_hash != packet_hash:
+        errors.append("VerifiedIntentPacket canonical payload hash does not match the TrustReceipt sidecar")
+    evidence_ids = {b.get("evidence_id") for b in slots.get("evidence_bindings", []) if isinstance(b, Mapping)} if isinstance(slots.get("evidence_bindings"), list) else set()
+    summary_ids = set((receipt.get("evidence_summary") or {}).get("referenced_evidence_ids", []) if isinstance(receipt.get("evidence_summary"), Mapping) else [])
+    if evidence_ids and summary_ids and not evidence_ids <= summary_ids:
+        errors.append("packet evidence_bindings are not a subset of receipt evidence_summary.referenced_evidence_ids")
+    return errors
+
+
+
+def verify_verified_intent_packet_handoff_from_files(
+    packet_path: str | Path,
+    receipt_path: str | Path,
+    draft_path: str | Path | None = None,
+) -> list[str]:
+    """Verify a VerifiedIntent handoff bundle from files.
+
+    This is the replay-authoritative helper. It loads packet/receipt with the
+    hardened JSON artifact reader, runs TrustReceipt replay internally, and then
+    compares the packet, receipt links, and replayed warrant. It avoids trusting
+    a caller-supplied replay_report dictionary.
+    """
+    from .trust_receipt_store import _read_json_artifact, replay_trust_receipt
+    packet_artifact = _read_json_artifact(packet_path, artifact_name="verified_intent_packet")
+    if not packet_artifact.get("ok"):
+        return [f"packet JSON artifact invalid: {packet_artifact.get('reason')}"]
+    receipt_artifact = _read_json_artifact(receipt_path, artifact_name="receipt")
+    if not receipt_artifact.get("ok"):
+        return [f"receipt JSON artifact invalid: {receipt_artifact.get('reason')}"]
+    replay = replay_trust_receipt(receipt_path, draft_path=draft_path)
+    return verify_verified_intent_packet_handoff(packet_artifact["value"], receipt_artifact["value"], replay)
 
 def _consumer_profile_policy_hash(workflow: str) -> str:
     payload = {

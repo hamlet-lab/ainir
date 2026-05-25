@@ -15,6 +15,8 @@ from typing import Any, Mapping
 
 import yaml
 
+from .core import load_yaml_no_duplicate_keys
+
 from .safety_registry import compact, get_registry
 
 
@@ -131,10 +133,10 @@ class OperationRegistry:
     def load(cls, path: str | Path | None = None) -> "OperationRegistry":
         if path is not None:
             with Path(path).open("r", encoding="utf-8") as f:
-                return cls(yaml.safe_load(f) or {})
+                return cls(load_yaml_no_duplicate_keys(f.read()) or {})
         try:
             content = resources.files("ainir.registries").joinpath("operation_spec_registry.yaml").read_text(encoding="utf-8")
-            return cls(yaml.safe_load(content) or {})
+            return cls(load_yaml_no_duplicate_keys(content) or {})
         except Exception:
             pass
         here = Path(__file__).resolve()
@@ -144,7 +146,7 @@ class OperationRegistry:
         ):
             if candidate.exists():
                 with candidate.open("r", encoding="utf-8") as f:
-                    return cls(yaml.safe_load(f) or {})
+                    return cls(load_yaml_no_duplicate_keys(f.read()) or {})
         raise RuntimeError("operation_spec_registry.yaml not found")
 
     def resolve_id(self, op_name: object) -> tuple[str | None, bool]:

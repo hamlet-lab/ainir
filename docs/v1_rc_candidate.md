@@ -2,13 +2,13 @@
 
 AiNIR is now packaged as a **v1.0 RC candidate public demo**.
 
-This means the public demo scope is ready for repository-level README/CI review and release-candidate evaluation. It does **not** mean AiNIR is a v1.0 final release or production runtime.
+This means the public demo scope is ready for private GitHub trial and release-candidate review. It does **not** mean AiNIR is a v1.0 final release or production runtime.
 
 ## RC candidate decision
 
 ```text
 decision: v1_0_rc_candidate
-public_release_ready: pending_repository_review
+public_release_ready: pending_private_github_trial
 production_runtime_ready: false
 v1_final_ready: false
 human_external_review: pending
@@ -23,7 +23,7 @@ human_external_review: pending
 - public safety registry and operation registry shape
 - public VerifiedIntentPacket export contract slot
 - public/private boundary language
-- launch-readiness and release-readiness checks
+- launch-readiness and private-trial checks
 
 ## What is not frozen
 
@@ -36,4 +36,4 @@ human_external_review: pending
 
 ## Recommended next step
 
-Confirm README rendering and GitHub Actions while the repository is still private. Only then decide whether to make the public demo visible.
+Upload the public repo to a private GitHub repository first. Confirm README rendering and GitHub Actions. Only then decide whether to make the public demo visible.

@@ -1,5 +1,5 @@
 {
-  "version": "v1_0_rc_candidate",
+  "version": "v1_0_rc_candidate_patch7",
   "examples": {
     "create_user_outbox_safe": {"expected_status": "passed"},
     "account_deletion_hard_delete_blocked": {"expected_status": "blocked"},

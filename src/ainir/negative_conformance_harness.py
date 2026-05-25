@@ -7,7 +7,9 @@ import tempfile
 
 import yaml
 
-from .core import DraftModule, dump_yaml, load_draft
+from .temp_paths import ainir_temp_str
+
+from .core import DraftModule, dump_yaml, load_draft, load_yaml_no_duplicate_keys
 from .execution_context import TrustedExecutionContext
 from .lowering import lower_to_typescript
 from .verifier import verify_draft
@@ -37,7 +39,7 @@ class NegativeConformanceResult:
 
 def run_negative_conformance_corpus(
     corpus_path: str | Path = "negative_conformance_corpus.yaml",
-    out_dir: str | Path = "negative_conformance_results",
+    out_dir: str | Path = ainir_temp_str("ainir_negative_conformance"),
     environment: str = "public_demo",
 ) -> dict[str, Any]:
     corpus_path = Path(corpus_path)
@@ -185,7 +187,7 @@ def _hidden_op_draft(op: str) -> dict[str, Any]:
 
 def _load_yaml(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
+        data = load_yaml_no_duplicate_keys(f.read()) or {}
     if not isinstance(data, dict):
         raise ValueError(f"negative conformance corpus root must be an object: {path}")
     return data

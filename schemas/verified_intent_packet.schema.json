@@ -17,7 +17,7 @@
       "const": "VerifiedIntentPacket"
     },
     "version": {
-      "const": "pre_v1_phase25"
+      "const": "pre_v1_phase25_defensive_integrity_packet_integrity"
     },
     "packet_id": {
       "type": "string",
@@ -586,15 +586,22 @@
           "required": [
             "ainir_receipt_id",
             "draft_hash",
+            "raw_source_sha256",
+            "canonical_draft_sha256",
             "registry_hash",
+            "registry_snapshot_hash",
             "verifier_report_hash",
-            "policy_hash"
+            "policy_hash",
+            "stable_receipt_projection_hash",
+            "gate_results_hash",
+            "evidence_summary_hash",
+            "trusted_context"
           ],
           "additionalProperties": false,
           "properties": {
             "ainir_receipt_id": {
               "type": "string",
-              "pattern": "^ainir\\.trust\\.receipt\\."
+              "pattern": "^ainir\\.trust\\.receipt\\.(?:[a-f0-9]{20}|fixture(?:\\.[A-Za-z0-9_.:-]+)?|example\\.[A-Za-z0-9_.:-]+)$"
             },
             "draft_hash": {
               "type": "string",
@@ -611,6 +618,56 @@
             "policy_hash": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "raw_source_sha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "canonical_draft_sha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "registry_snapshot_hash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "stable_receipt_projection_hash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "gate_results_hash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "evidence_summary_hash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "trusted_context": {
+              "type": "object",
+              "required": [
+                "environment",
+                "source",
+                "purpose"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "environment": {
+                  "enum": [
+                    "public_demo",
+                    "ci",
+                    "test"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "purpose": {
+                  "const": "verified_intent_export"
+                }
+              }
             }
           }
         }

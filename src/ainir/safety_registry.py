@@ -16,6 +16,8 @@ from typing import Any, Mapping
 
 import yaml
 
+from .core import load_yaml_no_duplicate_keys
+
 SAFE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,127}$")
 
 
@@ -55,12 +57,12 @@ class SafetyRegistry:
     def load(cls, path: str | Path | None = None) -> "SafetyRegistry":
         if path is not None:
             with Path(path).open("r", encoding="utf-8") as f:
-                return cls(yaml.safe_load(f) or {})
+                return cls(load_yaml_no_duplicate_keys(f.read()) or {})
 
         # Prefer packaged data so editable/install mode does not depend on CWD.
         try:
             content = resources.files("ainir.registries").joinpath("safety_registry.yaml").read_text(encoding="utf-8")
-            return cls(yaml.safe_load(content) or {})
+            return cls(load_yaml_no_duplicate_keys(content) or {})
         except Exception:
             pass
 
@@ -72,7 +74,7 @@ class SafetyRegistry:
         ):
             if candidate.exists():
                 with candidate.open("r", encoding="utf-8") as f:
-                    return cls(yaml.safe_load(f) or {})
+                    return cls(load_yaml_no_duplicate_keys(f.read()) or {})
         raise RuntimeError("safety_registry.yaml not found")
 
     def normalize_workflow(self, workflow: object) -> tuple[str, bool]:

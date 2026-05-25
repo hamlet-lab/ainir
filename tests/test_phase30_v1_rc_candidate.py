@@ -18,3 +18,14 @@ def test_v1_rc_docs_exist_and_status_is_bounded():
     assert "v1.0 RC candidate" in readme
     assert "not a v1.0 final" in readme
     assert "not a production runtime" in readme
+
+
+def test_phase30_quick_integrity_mode_skips_heavy_phase26(tmp_path):
+    from ainir.phase30_v1_rc_candidate import run_phase30_v1_rc_candidate_check
+
+    report = run_phase30_v1_rc_candidate_check(tmp_path / "phase30_quick", mode="quick-integrity")
+    assert report["overall_status"] == "passed"
+    assert report["mode"] == "quick-integrity"
+    assert report["decision"] == "quick_integrity_passed_full_release_check_not_run"
+    steps = {step["name"]: step for step in report["steps"]}
+    assert steps["phase26_private_trial"]["status"] == "not_run"

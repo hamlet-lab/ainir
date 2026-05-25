@@ -2,12 +2,92 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from hashlib import sha256
 from typing import Any, Dict, Iterable, List, Optional
 
+import re
 import yaml
 
 
 Severity = str
+
+
+class DuplicateKeyYAMLError(yaml.YAMLError):
+    """Raised when untrusted YAML contains duplicate mapping keys.
+
+    PyYAML's default loaders silently keep the last duplicate key. AiNIR receipts
+    and trust decisions must not let a raw model/provider draft shadow one meaning
+    with another, so draft loading rejects duplicates at every mapping depth.
+    """
+
+
+class ComplexKeyYAMLError(yaml.YAMLError):
+    """Raised when untrusted YAML uses non-scalar mapping keys.
+
+    AiNIR public drafts do not need YAML sequence/object keys. Rejecting them avoids
+    unhashable-key crashes and prevents parser/viewer ambiguity in receipt inputs.
+    """
+
+
+class AliasYAMLError(yaml.YAMLError):
+    """Raised when YAML aliases/anchors exceed the public demo input budget."""
+
+
+class DepthLimitYAMLError(yaml.YAMLError):
+    """Raised when parsed YAML exceeds the public demo nesting budget."""
+
+
+MAX_YAML_BYTES = 1_000_000
+MAX_YAML_DEPTH = 120
+MAX_YAML_ALIAS_TOKENS = 64
+
+
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    pass
+
+
+def _construct_unique_mapping(loader: yaml.SafeLoader, node: yaml.nodes.MappingNode, deep: bool = False):
+    seen: set[object] = set()
+    for key_node, _value_node in node.value:
+        mark = getattr(key_node, "start_mark", None)
+        location = f" at line {mark.line + 1}, column {mark.column + 1}" if mark is not None else ""
+        if not isinstance(key_node, yaml.nodes.ScalarNode):
+            raise ComplexKeyYAMLError(f"complex YAML mapping keys are forbidden{location}")
+        key = loader.construct_object(key_node, deep=deep)
+        if key in seen:
+            raise DuplicateKeyYAMLError(f"duplicate YAML key {key!r}{location}")
+        seen.add(key)
+    return yaml.SafeLoader.construct_mapping(loader, node, deep=deep)
+
+
+_UniqueKeySafeLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_unique_mapping,
+)
+
+
+def _depth_of(value: Any, limit: int = MAX_YAML_DEPTH, current: int = 0) -> int:
+    if current > limit:
+        raise DepthLimitYAMLError(f"YAML nesting depth exceeds {limit}")
+    if isinstance(value, dict):
+        if not value:
+            return current
+        return max(_depth_of(k, limit, current + 1) for k in value.keys()) if False else max(_depth_of(v, limit, current + 1) for v in value.values())
+    if isinstance(value, list):
+        if not value:
+            return current
+        return max(_depth_of(v, limit, current + 1) for v in value)
+    return current
+
+
+def load_yaml_no_duplicate_keys(text: str) -> Any:
+    """Parse YAML while rejecting duplicate keys and resource-abusive shapes."""
+    alias_tokens = len(re.findall(r"(?m)(?:^|[\s:,\[\{])([*&][A-Za-z0-9_-]+)", text))
+    if alias_tokens > MAX_YAML_ALIAS_TOKENS:
+        raise AliasYAMLError(f"YAML aliases/anchors exceed limit {MAX_YAML_ALIAS_TOKENS}")
+    data = yaml.load(text, Loader=_UniqueKeySafeLoader)
+    _depth_of(data)
+    return data
 
 
 @dataclass(frozen=True)
@@ -137,22 +217,82 @@ def load_draft(path: str | Path) -> DraftModule:
     The public demo treats provider/model output as untrusted. Non-object YAML
     and parse errors are converted into invalid DraftModule objects so the CLI
     reports `status: invalid` instead of printing a Python traceback.
+
+    Raw-source provenance is captured separately from the canonical parsed draft
+    because two distinct YAML byte streams can otherwise collapse to the same
+    object. Duplicate mapping keys are rejected before semantic verification.
     """
     source = Path(path)
     try:
-        with source.open("r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-    except yaml.YAMLError as exc:
-        return DraftModule(raw={"__parse_error__": str(exc), "__source_path__": str(source)})
+        raw_bytes = source.read_bytes()
     except OSError as exc:
         return DraftModule(raw={"__load_error__": str(exc), "__source_path__": str(source)})
+
+    raw_source_sha256 = "sha256:" + sha256(raw_bytes).hexdigest()
+    if len(raw_bytes) > MAX_YAML_BYTES:
+        return DraftModule(raw={
+            "__size_error__": f"draft exceeds {MAX_YAML_BYTES} byte limit",
+            "__source_path__": str(source),
+            "__raw_source_sha256__": raw_source_sha256,
+        })
+    try:
+        text = raw_bytes.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        return DraftModule(raw={
+            "__decode_error__": str(exc),
+            "__source_path__": str(source),
+            "__raw_source_sha256__": raw_source_sha256,
+        })
+    try:
+        data = load_yaml_no_duplicate_keys(text)
+    except DuplicateKeyYAMLError as exc:
+        return DraftModule(raw={
+            "__duplicate_key_error__": str(exc),
+            "__source_path__": str(source),
+            "__raw_source_sha256__": raw_source_sha256,
+        })
+    except ComplexKeyYAMLError as exc:
+        return DraftModule(raw={
+            "__complex_key_error__": str(exc),
+            "__source_path__": str(source),
+            "__raw_source_sha256__": raw_source_sha256,
+        })
+    except AliasYAMLError as exc:
+        return DraftModule(raw={
+            "__alias_error__": str(exc),
+            "__source_path__": str(source),
+            "__raw_source_sha256__": raw_source_sha256,
+        })
+    except DepthLimitYAMLError as exc:
+        return DraftModule(raw={
+            "__depth_error__": str(exc),
+            "__source_path__": str(source),
+            "__raw_source_sha256__": raw_source_sha256,
+        })
+    except (yaml.YAMLError, RecursionError, MemoryError) as exc:
+        return DraftModule(raw={
+            "__parse_error__": str(exc),
+            "__source_path__": str(source),
+            "__raw_source_sha256__": raw_source_sha256,
+        })
+    except Exception as exc:
+        return DraftModule(raw={
+            "__resource_error__": str(exc),
+            "__source_path__": str(source),
+            "__raw_source_sha256__": raw_source_sha256,
+        })
 
     if data is None:
         data = {}
     if not isinstance(data, dict):
-        return DraftModule(raw={"__invalid_root__": type(data).__name__, "__source_path__": str(source)})
+        return DraftModule(raw={
+            "__invalid_root__": type(data).__name__,
+            "__source_path__": str(source),
+            "__raw_source_sha256__": raw_source_sha256,
+        })
     data = dict(data)
     data["__source_path__"] = str(source)
+    data["__raw_source_sha256__"] = raw_source_sha256
     return DraftModule(raw=data)
 
 

@@ -7,6 +7,7 @@ from .core import DraftModule, Finding, VerificationReport
 from .draft_ast import parse_draft_ast
 from .execution_context import TrustedExecutionContext
 from .safety_registry import get_registry
+from .evidence_ledger import non_vacuous_evidence_findings
 
 
 _LOWERING_REGISTRY = get_registry()
@@ -55,6 +56,16 @@ def assess_lowering_eligibility(
 
     context = context or TrustedExecutionContext.public_demo()
     findings: list[Finding] = []
+
+    if context.is_production:
+        findings.append(
+            Finding(
+                rule="L013.public_demo_production_context_not_lowerable",
+                severity="critical",
+                target="trusted_context.environment",
+                message="The public demo lowerer is not production-runtime ready; production context cannot authorize lowering.",
+            )
+        )
 
     parsed = parse_draft_ast(draft)
     if parsed.has_critical or parsed.ast is None:
@@ -135,7 +146,7 @@ def assess_lowering_eligibility(
             )
         )
     _add_lowering_surface_findings(parsed.ast.passthrough, findings)
-
+    findings.extend(non_vacuous_evidence_findings(draft, target="evidence.bindings"))
     fresh_report = verify_draft(draft, context)
     if fresh_report.status != "passed":
         findings.append(

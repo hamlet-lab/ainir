@@ -1,4 +1,4 @@
-# Pre-v1 Phase 20 - TrustReceipt Conformance Integration
+# Pre-v1 Phase 20 — TrustReceipt Conformance Integration
 
 Phase 19 made TrustReceipt issue/replay possible. Phase 20 makes that replay part of AiNIR's ordinary conformance surface.
 

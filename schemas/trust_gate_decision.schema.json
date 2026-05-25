@@ -15,7 +15,11 @@
     "satisfied_gates",
     "failed_gates",
     "verifier_report",
-    "receipt"
+    "receipt",
+    "gate_results",
+    "required_next_actions",
+    "lowering_eligibility",
+    "findings"
   ],
   "properties": {
     "kind": {
@@ -87,6 +91,9 @@
       }
     },
     "receipt": {
+      "type": "object"
+    },
+    "gate_results": {
       "type": "object"
     }
   }

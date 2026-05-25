@@ -48,7 +48,7 @@ def test_claude_source_cannot_self_attest_verified_claim():
         ],
     }
     assert _status(raw) == "blocked"
-    assert "T001.verified_claim_requires_ledger_bound_evidence" in _rules(raw)
+    assert "TR001.verified_claim_requires_ledger_bound_evidence" in _rules(raw)
 
 
 def test_payment_finalize_production_operation_is_blocked_even_without_real_word():

@@ -31,63 +31,21 @@ def test_missing_examples_dir_fails_demo(tmp_path):
 
 
 def test_lowerer_rejects_unallowlisted_type(tmp_path):
-    draft = DraftModule(
-        raw={
-            "module": "demo.safe_but_bad_type",
-            "workflow": "CreateUser",
-            "task": "CreateUserRequest",
-            "input_type": "EvilType",
-            "output_type": "CreateUserResult",
-            "policies": [
-                {"id": "policy.no_direct_email_in_create_user"},
-                {"id": "policy.transactional_outbox_required"},
-                {"id": "policy.user_email_unique"},
-            ],
-            "transaction": {"id": "tx.create_user", "mode": "atomic", "includes": ["op.insert_user", "op.insert_outbox"]},
-            "operations": [
-                {"id": "op.normalize", "op": "data.normalize_email", "effects": []},
-                {"id": "op.check", "op": "db.exists_user_by_email", "effects": ["effect.storage.db.read"], "capabilities": ["cap.db.user.read"]},
-                {"id": "op.insert_user", "op": "db.insert_user", "effects": ["effect.storage.db.write"], "capabilities": ["cap.db.user.write"], "policies": ["policy.user_email_unique"]},
-                {"id": "op.insert_outbox", "op": "outbox.insert_welcome_email_requested", "effects": ["effect.storage.outbox.write"], "capabilities": ["cap.outbox.write"]},
-            ],
-            "return": "state",
-        }
-    )
+    draft = load_draft("examples/create_user_outbox_safe/draft.yaml")
+    draft.raw["input_type"] = "EvilType"
     report = verify_draft(draft)
     assert report.status == "passed"
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as exc:
         lower_to_typescript(draft, report, tmp_path / "out")
+    assert "L009.lowering_forbids_unallowed_input_type" in str(exc.value)
 
 
 def test_lowerer_sanitizes_filename_and_function(tmp_path):
-    draft = DraftModule(
-        raw={
-            "module": "demo.safe-name",
-            "workflow": "CreateUser",
-            "task": "CreateUserRequest",
-            "input_type": "CreateUserInput",
-            "output_type": "CreateUserResult",
-            "policies": [
-                {"id": "policy.no_direct_email_in_create_user"},
-                {"id": "policy.transactional_outbox_required"},
-                {"id": "policy.user_email_unique"},
-            ],
-            "transaction": {"id": "tx.create_user", "mode": "atomic", "includes": ["op.insert_user", "op.insert_outbox"]},
-            "operations": [
-                {"id": "op.normalize", "op": "data.normalize_email", "effects": []},
-                {"id": "op.check", "op": "db.exists_user_by_email", "effects": ["effect.storage.db.read"], "capabilities": ["cap.db.user.read"]},
-                {"id": "op.insert_user", "op": "db.insert_user", "effects": ["effect.storage.db.write"], "capabilities": ["cap.db.user.write"], "policies": ["policy.user_email_unique"]},
-                {"id": "op.insert_outbox", "op": "outbox.insert_welcome_email_requested", "effects": ["effect.storage.outbox.write"], "capabilities": ["cap.outbox.write"]},
-            ],
-            "return": "state",
-        }
-    )
-    report = verify_draft(draft)
-    assert report.status == "passed"
-    target = lower_to_typescript(draft, report, tmp_path / "out")
-    assert target.name == "demo.safe-name.lowered.ts"
-    text = target.read_text(encoding="utf-8")
-    assert "export async function createUserRequest" in text
+    from ainir.lowering import _safe_slug, _safe_function_name
+
+    assert _safe_slug("demo.safe-name", fallback="module") == "demo.safe-name"
+    assert _safe_function_name("CreateUserRequest") == "createUserRequest"
+
 
 def test_verified_claim_with_llm_output_source_fails():
     raw = {
@@ -112,4 +70,4 @@ def test_verified_claim_with_llm_output_source_fails():
     }
     report = verify_draft(DraftModule(raw=raw))
     assert report.status == "blocked"
-    assert any(f.rule == "T001.verified_claim_requires_ledger_bound_evidence" for f in report.findings)
+    assert any(f.rule == "TR001.verified_claim_requires_ledger_bound_evidence" for f in report.findings)

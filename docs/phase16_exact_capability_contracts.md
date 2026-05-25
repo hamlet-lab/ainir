@@ -1,4 +1,4 @@
-# Pre-v1 Phase 16 - Exact Capability Contracts
+# Pre-v1 Phase 16 — Exact Capability Contracts
 
 Phase 16 tightens the public demo capability model.
 

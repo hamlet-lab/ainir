@@ -3,15 +3,23 @@
   "title": "AiNIR Trust Receipt",
   "type": "object",
   "required": [
+    "canonical_draft_sha256",
+    "draft_hash",
+    "evidence_summary",
+    "gate_results",
+    "production_runtime_ready",
+    "raw_source_sha256",
     "receipt_id",
     "receipt_kind",
-    "version",
-    "status",
-    "draft_hash",
+    "registry_snapshot",
+    "registry_snapshot_hash",
     "safety_registry_hash",
+    "stable_receipt_projection_hash",
+    "status",
     "trusted_context",
-    "production_runtime_ready",
-    "v1_final_ready"
+    "v1_final_ready",
+    "verifier_report_hash",
+    "version"
   ],
   "properties": {
     "receipt_id": {
@@ -42,15 +50,15 @@
     },
     "draft_hash": {
       "type": "string",
-      "pattern": "^sha256:"
+      "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "safety_registry_hash": {
       "type": "string",
-      "pattern": "^sha256:"
+      "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "verifier_report_hash": {
       "type": "string",
-      "pattern": "^sha256:"
+      "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "trusted_context": {
       "type": "object"
@@ -77,6 +85,31 @@
       "const": false
     },
     "external_consumer_handoff": {
+      "type": "object"
+    },
+    "canonical_draft_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "raw_source_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "evidence_summary": {
+      "type": "object"
+    },
+    "stable_receipt_projection_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "gate_results": {
+      "type": "object"
+    },
+    "registry_snapshot_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "registry_snapshot": {
       "type": "object"
     }
   }

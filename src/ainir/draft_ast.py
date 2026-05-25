@@ -35,7 +35,7 @@ _OPTIONAL_PASSTHROUGH_FIELDS = {
 
 _REQUIRED_TOP_LEVEL_FIELDS = {"module", "workflow", "task", "operations"}
 _OPTIONAL_SECTION_FIELDS = {"claims", "evidence", "policies", "holes"}
-_INTERNAL_LOADER_FIELDS = {"__source_path__", "__parse_error__", "__load_error__", "__invalid_root__"}
+_INTERNAL_LOADER_FIELDS = {"__source_path__", "__raw_source_sha256__", "__parse_error__", "__duplicate_key_error__", "__complex_key_error__", "__decode_error__", "__load_error__", "__invalid_root__", "__size_error__", "__alias_error__", "__depth_error__", "__resource_error__"}
 _ALLOWED_TOP_LEVEL_FIELDS = _REQUIRED_TOP_LEVEL_FIELDS | _OPTIONAL_SECTION_FIELDS | _OPTIONAL_PASSTHROUGH_FIELDS | _INTERNAL_LOADER_FIELDS
 _ALLOWED_OPERATION_FIELDS = {"id", "op", "effects", "capabilities", "policies"}
 _ALLOWED_CLAIM_FIELDS = {"id", "status", "statement", "evidence"}
@@ -200,6 +200,23 @@ def parse_draft_ast(draft: DraftModule) -> DraftParseResult:
     raw = draft.raw
     findings: list[Finding] = []
 
+    if "__duplicate_key_error__" in raw:
+        return DraftParseResult(None, (Finding("S070.yaml_duplicate_key", "critical", "Draft YAML contains duplicate mapping keys; duplicate-key shadowing is forbidden.", "draft"),))
+    if "__complex_key_error__" in raw:
+        return DraftParseResult(None, (Finding("S071.yaml_complex_mapping_key_forbidden", "critical", "Draft YAML uses a complex/non-scalar mapping key; AiNIR drafts require scalar keys.", "draft"),))
+    if "__decode_error__" in raw:
+        return DraftParseResult(None, (
+            Finding("S000.yaml_decode_error", "critical", "Draft file is not valid UTF-8 YAML text.", "draft"),
+            Finding("S072.yaml_utf8_decode_error", "critical", "Draft file is not valid UTF-8 YAML text.", "draft"),
+        ))
+    if "__alias_error__" in raw:
+        return DraftParseResult(None, (Finding("S075.yaml_alias_forbidden", "critical", "Draft YAML aliases/anchors exceed the public-demo safety budget.", "draft"),))
+    if "__depth_error__" in raw:
+        return DraftParseResult(None, (Finding("S073.yaml_depth_limit_exceeded", "critical", "Draft YAML exceeds the public-demo nesting depth limit.", "draft"),))
+    if "__size_error__" in raw:
+        return DraftParseResult(None, (Finding("S074.yaml_file_too_large", "critical", "Draft YAML exceeds the public-demo file size limit.", "draft"),))
+    if "__resource_error__" in raw:
+        return DraftParseResult(None, (Finding("S000.yaml_resource_error", "critical", "Draft YAML could not be safely parsed within resource limits.", "draft"),))
     if "__parse_error__" in raw:
         return DraftParseResult(None, (Finding("S000.yaml_parse_error", "critical", "Draft YAML could not be parsed.", "draft"),))
     if "__load_error__" in raw:

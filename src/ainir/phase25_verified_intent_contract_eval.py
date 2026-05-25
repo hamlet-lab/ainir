@@ -8,9 +8,10 @@ from typing import Any
 from .core import load_draft
 from .execution_context import TrustedExecutionContext
 from .verified_intent_export import export_verified_intent_packet, validate_verified_intent_packet
+from .temp_paths import ainir_temp_str
 
 
-def run_phase25_verified_intent_contract_eval(out_dir: str | Path = "phase25_verified_intent_contract_results") -> dict[str, Any]:
+def run_phase25_verified_intent_contract_eval(out_dir: str | Path = ainir_temp_str("ainir_phase25_verified_intent_contract")) -> dict[str, Any]:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     context = TrustedExecutionContext.public_demo()
@@ -81,7 +82,7 @@ def run_phase25_verified_intent_contract_eval(out_dir: str | Path = "phase25_ver
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run AiNIR pre-v1 Phase 25 VerifiedIntentPacket strict contract evaluation.")
-    parser.add_argument("--out-dir", default="phase25_verified_intent_contract_results")
+    parser.add_argument("--out-dir", default=ainir_temp_str("ainir_phase25_verified_intent_contract"))
     args = parser.parse_args()
     report = run_phase25_verified_intent_contract_eval(args.out_dir)
     print(json.dumps(report, indent=2, ensure_ascii=False))

@@ -6,7 +6,7 @@ fixtures:
     reason: ledger_bound_authorization_evidence_present
   - id: pii_export_without_evidence_blocked
     expected_ainir_export: refused
-    reason: profile_requires_verified_authorization_evidence
+    reason: trust_gate_not_passed
   - id: ambiguous_top_customers_blocked
     expected_ainir_export: refused
     reason: unresolved_ambiguity

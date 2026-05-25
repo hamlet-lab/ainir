@@ -1,4 +1,4 @@
-# v1.0 RC Candidate Patch 4 - Registry and Classifier Consistency
+# v1.0 RC Candidate Patch 4 — Registry and Classifier Consistency
 
 Patch 4 tightens several code-level consistency issues found after the v1.0 RC Candidate Patch 3 scope-boundary review.
 

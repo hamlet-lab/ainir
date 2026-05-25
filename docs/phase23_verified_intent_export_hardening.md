@@ -1,4 +1,4 @@
-# Pre-v1 Phase 23 - Verified Intent Export Contract Hardening
+# Pre-v1 Phase 23 — Verified Intent Export Contract Hardening
 
 Phase 23 keeps AiNIR independent and hardens the optional VerifiedIntentPacket export surface.
 

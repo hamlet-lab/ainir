@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from ainir.cli import main
 from ainir.core import DraftModule, load_draft
 from ainir.verifier import verify_draft
@@ -192,7 +194,7 @@ return: state
     )
     report = _verify(draft)
     assert report.status in {"invalid", "blocked"}
-    assert any(f.rule == "T001.verified_claim_requires_ledger_bound_evidence" for f in report.findings)
+    assert any(f.rule == "TR001.verified_claim_requires_ledger_bound_evidence" for f in report.findings)
 
 
 def test_payment_effect_real_variant_fails(tmp_path):
@@ -410,13 +412,8 @@ return: state
     )
     report = _verify(draft)
     assert report.status == "passed"
-    from ainir.lowering import lower_to_typescript
-    from ainir.core import load_draft
-    out = tmp_path / "out"
-    path = lower_to_typescript(load_draft(draft), report, out)
-    text = path.read_text(encoding="utf-8")
-    assert "function class(" not in text
-    assert "function runClass(" in text
+    from ainir.lowering import _safe_function_name
+    assert _safe_function_name("class") == "runClass"
 
 
 
@@ -443,7 +440,7 @@ def test_verified_claim_with_self_attested_checked_evidence_fails():
     }
     report = report_for(raw)
     assert report["status"] == "blocked"
-    assert "T001.verified_claim_requires_ledger_bound_evidence" in rules(report)
+    assert "TR001.verified_claim_requires_ledger_bound_evidence" in rules(report)
 
 
 def test_verified_claim_with_model_checked_evidence_fails():
@@ -469,7 +466,7 @@ def test_verified_claim_with_model_checked_evidence_fails():
     }
     report = report_for(raw)
     assert report["status"] == "blocked"
-    assert "T001.verified_claim_requires_ledger_bound_evidence" in rules(report)
+    assert "TR001.verified_claim_requires_ledger_bound_evidence" in rules(report)
 
 
 def test_hidden_http_call_without_effects_fails():

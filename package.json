@@ -1,0 +1,12 @@
+{
+  "name": "ainir-public-demo",
+  "version": "1.0.0-rc.1",
+  "private": true,
+  "description": "AiNIR public demo local TypeScript skeleton compile dependency lock.",
+  "devDependencies": {
+    "typescript": "5.8.3"
+  },
+  "scripts": {
+    "tsc-version": "tsc --version"
+  }
+}

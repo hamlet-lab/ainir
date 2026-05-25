@@ -1,4 +1,4 @@
-# AiNIR v1.0 RC Candidate Patch 3 - Scope Boundaries and Extensibility Roadmap
+# AiNIR v1.0 RC Candidate Patch 3 — Scope Boundaries and Extensibility Roadmap
 
 Patch 3 documents the intentional boundaries of the RC candidate.
 

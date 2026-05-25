@@ -8,7 +8,9 @@ import tempfile
 
 import yaml
 
-from .core import DraftModule, dump_yaml, load_draft
+from .temp_paths import ainir_temp_str
+
+from .core import DraftModule, dump_yaml, load_draft, load_yaml_no_duplicate_keys
 from .execution_context import TrustedExecutionContext
 from .lowering import lower_to_typescript
 from .trust_receipt_store import issue_trust_receipt, replay_trust_receipt
@@ -47,7 +49,7 @@ class GoldenTraceResult:
 
 def run_golden_traces(
     traces_path: str | Path = "golden_traces.yaml",
-    out_dir: str | Path = "golden_trace_results",
+    out_dir: str | Path = ainir_temp_str("ainir_golden_traces"),
     environment: str = "public_demo",
 ) -> dict[str, Any]:
     """Replay fixed end-to-end golden traces.
@@ -203,7 +205,7 @@ def _draft_from_trace(trace: dict[str, Any], root: Path, trace_out: Path) -> tup
 
 def _load_yaml(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
+        data = load_yaml_no_duplicate_keys(f.read()) or {}
     if not isinstance(data, dict):
         raise ValueError(f"golden trace pack root must be an object: {path}")
     return data

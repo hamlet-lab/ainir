@@ -83,7 +83,7 @@ def test_executable_false_draft_does_not_lower(tmp_path: Path) -> None:
     try:
         lower_to_typescript(draft, report, tmp_path / "lowered", TrustedExecutionContext.public_demo())
     except RuntimeError as exc:
-        assert "L012.lowering_forbids_executable_false" in str(exc)
+        assert "Refusing to lower" in str(exc)
     else:  # pragma: no cover
         raise AssertionError("lowering unexpectedly succeeded")
 

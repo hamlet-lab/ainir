@@ -17,7 +17,7 @@ from typing import Any, Mapping
 import yaml
 
 from .safety_registry import get_registry
-from .core import DraftModule
+from .core import DraftModule, Finding, load_yaml_no_duplicate_keys
 
 _SELF_ATTEST_FIELDS = {
     "checked",
@@ -58,7 +58,7 @@ class EvidenceLedger:
         if path is not None:
             p = Path(path)
             with p.open("r", encoding="utf-8") as f:
-                return cls(yaml.safe_load(f) or {}, p.parent.parent if p.parent.name == "registries" else p.parent)
+                return cls(load_yaml_no_duplicate_keys(f.read()) or {}, p.parent.parent if p.parent.name == "registries" else p.parent)
 
         # Prefer the repository-root ledger so artifact hashes can be checked
         # against files in examples/. Packaged resources are a fallback for
@@ -70,11 +70,11 @@ class EvidenceLedger:
         ):
             if candidate.exists():
                 with candidate.open("r", encoding="utf-8") as f:
-                    return cls(yaml.safe_load(f) or {}, candidate.parent.parent)
+                    return cls(load_yaml_no_duplicate_keys(f.read()) or {}, candidate.parent.parent)
 
         try:
             content = resources.files("ainir.registries").joinpath("evidence_ledger.yaml").read_text(encoding="utf-8")
-            return cls(yaml.safe_load(content) or {}, None)
+            return cls(load_yaml_no_duplicate_keys(content) or {}, None)
         except Exception:
             pass
 
@@ -153,7 +153,18 @@ class EvidenceLedger:
                 return LedgerDecision(False, "current draft source path does not exist", eid)
             current_sha = sha256(current_path.read_bytes()).hexdigest()
             if current_sha != artifact_sha:
-                return LedgerDecision(False, "ledger evidence is not bound to the current draft artifact", eid)
+                # Exact fixture provenance is recorded separately through raw_source_sha256.
+                # Evidence binding is semantic: a harmless YAML comment must not erase
+                # a claim/evidence warrant when the canonical draft payload is unchanged.
+                try:
+                    current_payload = {k: v for k, v in draft.raw.items() if not str(k).startswith("__")}
+                    artifact_payload = load_yaml_no_duplicate_keys(artifact.read_text(encoding="utf-8")) or {}
+                    current_canonical = sha256(yaml.safe_dump(current_payload, sort_keys=True, allow_unicode=True).encode("utf-8")).hexdigest()
+                    artifact_canonical = sha256(yaml.safe_dump(artifact_payload, sort_keys=True, allow_unicode=True).encode("utf-8")).hexdigest()
+                except Exception:
+                    current_canonical = artifact_canonical = None
+                if current_canonical != artifact_canonical:
+                    return LedgerDecision(False, "ledger evidence is not bound to the current draft artifact or canonical draft", eid)
 
         return LedgerDecision(True, "evidence is ledger-bound and checked for the current draft", eid)
 
@@ -165,3 +176,118 @@ def get_evidence_ledger() -> EvidenceLedger:
 
 def claim_statement_sha256(statement: str) -> str:
     return sha256(str(statement).encode("utf-8")).hexdigest()
+
+def ledger_bound_evidence_summary(draft: DraftModule) -> dict[str, Any]:
+    """Summarize whether a draft has non-vacuous ledger-bound warrant.
+
+    This intentionally runs independently from the verifier's verified-claim
+    check. A draft can be structurally/policy-valid while still being
+    ineligible for Trust Gate handoff/lowering because it carries no auditable
+    claim/evidence warrant.
+    """
+    total_claims = len(draft.claims)
+    verified_claim_count = 0
+    total_evidence_refs = 0
+    verified_evidence_refs = 0
+    checked_evidence_refs = 0
+    checked_verified_evidence_refs = 0
+    failed_reasons: list[str] = []
+    for claim in draft.claims:
+        is_verified_claim = str(claim.get("status", "hypothesized")) == "verified"
+        if is_verified_claim:
+            verified_claim_count += 1
+        evidence = claim.get("evidence", []) or []
+        if not isinstance(evidence, list):
+            continue
+        for ev in evidence:
+            if not isinstance(ev, Mapping):
+                continue
+            total_evidence_refs += 1
+            if is_verified_claim:
+                verified_evidence_refs += 1
+            decision = get_evidence_ledger().decide(ev, claim, draft.module_id, draft.workflow, draft)
+            if decision.checked:
+                checked_evidence_refs += 1
+                if is_verified_claim:
+                    checked_verified_evidence_refs += 1
+            else:
+                failed_reasons.append(f"{decision.evidence_id or 'evidence'}: {decision.reason}")
+    return {
+        "claim_count": total_claims,
+        "verified_claim_count": verified_claim_count,
+        "evidence_ref_count": total_evidence_refs,
+        "verified_evidence_ref_count": verified_evidence_refs,
+        "ledger_bound_checked_evidence_count": checked_evidence_refs,
+        "ledger_bound_checked_verified_evidence_count": checked_verified_evidence_refs,
+        "failed_reasons": failed_reasons,
+    }
+
+
+def non_vacuous_evidence_findings(draft: DraftModule, *, target: str = "evidence.bindings") -> list[Finding]:
+    """Return critical findings when handoff/lowering would be evidence-vacuous."""
+    summary = ledger_bound_evidence_summary(draft)
+    if summary["claim_count"] <= 0:
+        return [
+            Finding(
+                rule="TR000.ledger_bound_claim_required",
+                severity="critical",
+                target="claims",
+                message="Trust Gate handoff/lowering requires at least one verified, ledger-bound claim; no claims were provided.",
+                suggestion="Add a verified claim with evidence bound to registries/evidence_ledger.yaml, or keep the draft at verification-only status without handoff/lowering.",
+            )
+        ]
+    if summary.get("verified_claim_count", 0) <= 0:
+        return [
+            Finding(
+                rule="TR000.verified_ledger_bound_claim_required",
+                severity="critical",
+                target="claims",
+                message="Trust Gate handoff/lowering requires at least one verified claim; unverified or hypothesized claims are not sufficient for handoff.",
+                suggestion="Promote at least one claim to status=verified and bind it to checked ledger evidence before requesting handoff or lowering.",
+            )
+        ]
+    if summary["evidence_ref_count"] <= 0:
+        return [
+            Finding(
+                rule="TR001.handoff_requires_ledger_bound_evidence",
+                severity="critical",
+                target=target,
+                message="Trust Gate handoff/lowering requires at least one evidence reference bound to the bundled evidence ledger.",
+                suggestion="Reference an evidence id present in registries/evidence_ledger.yaml before requesting handoff or lowering.",
+            )
+        ]
+    if summary.get("ledger_bound_checked_verified_evidence_count", 0) <= 0:
+        reasons = "; ".join(summary["failed_reasons"][:4])
+        return [
+            Finding(
+                rule="TR001.handoff_requires_ledger_bound_evidence",
+                severity="critical",
+                target=target,
+                message="Trust Gate handoff/lowering requires at least one checked evidence reference bound to a verified claim; none were accepted." + (f" Reasons: {reasons}" if reasons else ""),
+                suggestion="Use evidence ids that are checked, trusted, bound to this module/workflow/source artifact, and attached to a verified claim.",
+            )
+        ]
+    unwarranted: list[str] = []
+    for claim in draft.claims:
+        cid = str(claim.get("id", "<claim>")) if isinstance(claim, Mapping) else "<claim>"
+        if not isinstance(claim, Mapping) or str(claim.get("status", "hypothesized")) != "verified":
+            unwarranted.append(cid + ": not verified")
+            continue
+        accepted = False
+        for ev in claim.get("evidence", []) or []:
+            if isinstance(ev, Mapping) and get_evidence_ledger().decide(ev, claim, draft.module_id, draft.workflow, draft).checked:
+                accepted = True
+                break
+        if not accepted:
+            unwarranted.append(cid + ": no checked ledger-bound evidence")
+    if unwarranted:
+        return [
+            Finding(
+                rule="TR002.unwarranted_handoff_claim",
+                severity="critical",
+                target="claims",
+                message="Every handoff-visible claim must be verified and bound to checked ledger evidence; unwarranted claims: " + "; ".join(unwarranted[:8]),
+                suggestion="Remove, quarantine, or bind every handoff-visible claim before Trust Gate handoff/lowering.",
+            )
+        ]
+    return []

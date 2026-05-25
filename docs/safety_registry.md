@@ -1,4 +1,4 @@
-# Safety Registry - Single Source of Truth
+# Safety Registry — Single Source of Truth
 
 AiNIR public demo is now in **pre-v1 architecture hardening**. The central rule is:
 

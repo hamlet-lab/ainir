@@ -7,12 +7,13 @@ from typing import Any
 
 import yaml
 
-from .core import load_draft
+from .core import load_draft, load_yaml_no_duplicate_keys
 from .execution_context import TrustedExecutionContext
 from .verified_intent_export import export_verified_intent_packet, validate_verified_intent_packet
+from .temp_paths import ainir_temp_str
 
 
-def run_phase22_verified_intent_eval(out_dir: str | Path = "phase22_verified_intent_results") -> dict[str, Any]:
+def run_phase22_verified_intent_eval(out_dir: str | Path = ainir_temp_str("ainir_phase22_verified_intent")) -> dict[str, Any]:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     context = TrustedExecutionContext.public_demo()
@@ -40,14 +41,14 @@ def run_phase22_verified_intent_eval(out_dir: str | Path = "phase22_verified_int
 
     with TemporaryDirectory() as td:
         temp = Path(td)
-        base = yaml.safe_load(safe_path.read_text())
+        base = load_yaml_no_duplicate_keys(safe_path.read_text(encoding="utf-8"))
 
         no_evidence = dict(base)
         no_evidence["module"] = "demo.pii_export_without_evidence_blocked"
         no_evidence["claims"] = []
         p = temp / "pii_export_without_evidence.yaml"
         p.write_text(yaml.safe_dump(no_evidence, sort_keys=False, allow_unicode=True), encoding="utf-8")
-        add_case("pii_export_without_evidence_blocked", p, "refused", "profile_requires_verified_authorization_evidence")
+        add_case("pii_export_without_evidence_blocked", p, "refused", "trust_gate_not_passed")
 
         ambiguous = dict(base)
         ambiguous["module"] = "demo.ambiguous_top_customers_blocked"
@@ -96,7 +97,7 @@ def _safe_internal_query_packet() -> dict[str, Any]:
     # concrete downstream plan; schema grounding remains a consumer obligation.
     return {
         "kind": "VerifiedIntentPacket",
-        "version": "pre_v1_phase25",
+        "version": "pre_v1_phase25_defensive_integrity_packet_integrity",
         "packet_id": "ainir.verified_intent.fixture.pii_export_shape_phase25",
         "producer": "AiNIR",
         "consumer_profile": "AIVLConsumerProfile",
@@ -131,6 +132,6 @@ def _safe_internal_query_packet() -> dict[str, Any]:
                 ]},
             "required_contracts": ["encrypted_export_package", "field_allowlist", "filter_matches", "pii_export_authorized", "pii_export_boundary_declared", "projection_matches", "schema_grounding_required"],
             "security_classifications": [{"classification_scope":"export_payload", "classification":"PII", "source":"consumer_grounded_export_fields", "status":"consumer_must_ground"}],
-            "receipt_links": {"ainir_receipt_id": "ainir.trust.receipt.fixture", "draft_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "registry_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111", "verifier_report_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222", "policy_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"},
+            "receipt_links": {"ainir_receipt_id": "ainir.trust.receipt.fixture", "draft_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "raw_source_sha256": "sha256:4444444444444444444444444444444444444444444444444444444444444444", "canonical_draft_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "registry_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111", "registry_snapshot_hash": "sha256:5555555555555555555555555555555555555555555555555555555555555555", "verifier_report_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222", "policy_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333", "stable_receipt_projection_hash": "sha256:6666666666666666666666666666666666666666666666666666666666666666", "gate_results_hash": "sha256:7777777777777777777777777777777777777777777777777777777777777777", "evidence_summary_hash": "sha256:8888888888888888888888888888888888888888888888888888888888888888", "trusted_context": {"environment": "public_demo", "source": "fixture", "purpose": "verified_intent_export"}},
         },
     }

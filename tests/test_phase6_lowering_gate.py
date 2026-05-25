@@ -1,33 +1,18 @@
 from pathlib import Path
 
-from ainir.core import DraftModule
+from ainir.core import DraftModule, load_draft
 from ainir.execution_context import TrustedExecutionContext
 from ainir.lowering import lower_to_typescript
 from ainir.lowering_gate import assess_lowering_eligibility
 from ainir.verifier import verify_draft
 
 
+ROOT = Path(__file__).resolve().parents[1]
+SAFE = ROOT / "examples" / "create_user_outbox_safe" / "draft.yaml"
+
+
 def _safe_create_user():
-    return DraftModule({
-        "module": "demo.create_user_outbox_safe",
-        "workflow": "CreateUser",
-        "task": "CreateUserRequest",
-        "input_type": "CreateUserInput",
-        "output_type": "CreateUserResult",
-        "return": "state",
-        "policies": [
-            {"id": "policy.no_direct_email_in_create_user"},
-            {"id": "policy.transactional_outbox_required"},
-            {"id": "policy.user_email_unique"},
-        ],
-        "transaction": {"id": "tx.create_user", "mode": "atomic", "includes": ["op.insert", "op.outbox"]},
-        "operations": [
-            {"id": "op.normalize", "op": "data.normalize_email", "effects": []},
-            {"id": "op.lookup", "op": "db.exists_user_by_email", "effects": ["effect.storage.db.read"], "capabilities": ["cap.db.read"]},
-            {"id": "op.insert", "op": "db.insert_user", "effects": ["effect.storage.db.write"], "capabilities": ["cap.db.write"], "policies": ["policy.user_email_unique"]},
-            {"id": "op.outbox", "op": "outbox.insert_welcome_email_requested", "effects": ["effect.storage.outbox.write"], "capabilities": ["cap.outbox.write"]},
-        ],
-    })
+    return load_draft(Path(__file__).resolve().parents[1] / "examples" / "create_user_outbox_safe" / "draft.yaml")
 
 
 def _unsafe_payment():
@@ -47,7 +32,7 @@ def _unsafe_payment():
 
 def test_lowering_gate_allows_fresh_passed_report():
     ctx = TrustedExecutionContext.from_environment("public_demo")
-    draft = _safe_create_user()
+    draft = load_draft(SAFE)
     report = verify_draft(draft, ctx)
     gate = assess_lowering_eligibility(draft, report, ctx)
     assert report.status == "passed"
@@ -71,7 +56,7 @@ def test_lowering_gate_rejects_stale_report_reused_for_unsafe_draft(tmp_path: Pa
 
 def test_lowering_emits_host_enforcement_contract(tmp_path: Path):
     ctx = TrustedExecutionContext.from_environment("staging")
-    draft = _safe_create_user()
+    draft = load_draft(SAFE)
     report = verify_draft(draft, ctx)
     target = lower_to_typescript(draft, report, tmp_path, ctx)
     text = target.read_text(encoding="utf-8")

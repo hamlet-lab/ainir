@@ -1,4 +1,4 @@
-# Pre-v1 Phase 14 - Operation Contract Fix and Launch Runner Stabilization
+# Pre-v1 Phase 14 — Operation Contract Fix and Launch Runner Stabilization
 
 Phase 14 narrows the public demo changes to operation/effect contract correctness and launch-runner stability.
 

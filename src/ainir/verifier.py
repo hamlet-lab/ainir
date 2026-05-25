@@ -17,7 +17,6 @@ from .transaction_contract import transaction_findings
 
 REGISTRY = get_registry()
 OP_REGISTRY = get_operation_registry()
-LEDGER = get_evidence_ledger()
 _SAFE_STATUS_VALUES = {"hypothesized", "verified", "unverified"}
 
 
@@ -38,8 +37,9 @@ def verify_draft(draft: DraftModule, context: TrustedExecutionContext | None = N
         )
 
     ast_draft = parsed.ast.to_draft_module()
-    if isinstance(draft.raw.get("__source_path__"), str):
-        ast_draft.raw["__source_path__"] = draft.raw["__source_path__"]
+    for internal_field in ("__source_path__", "__raw_source_sha256__"):
+        if isinstance(draft.raw.get(internal_field), str):
+            ast_draft.raw[internal_field] = draft.raw[internal_field]
     normalized, findings = normalize_draft(ast_draft)
     findings.extend(parsed.findings)
     schema_findings = _schema_findings(normalized)
@@ -95,6 +95,11 @@ def _schema_findings(draft: DraftModule) -> list[Finding]:
 
     if "__parse_error__" in raw:
         findings.append(Finding("S000.yaml_parse_error", "critical", "Draft YAML could not be parsed.", "draft"))
+    if "__decode_error__" in raw:
+        findings.append(Finding("S000.yaml_decode_error", "critical", "Draft file is not valid UTF-8 YAML text.", "draft"))
+        findings.append(Finding("S072.yaml_utf8_decode_error", "critical", "Draft file is not valid UTF-8 YAML text.", "draft"))
+    if "__complex_key_error__" in raw:
+        findings.append(Finding("S071.yaml_complex_mapping_key_forbidden", "critical", "Draft YAML uses a complex/non-scalar mapping key.", "draft"))
     if "__load_error__" in raw:
         findings.append(Finding("S000.draft_load_error", "critical", "Draft file could not be loaded.", "draft"))
     if "__invalid_root__" in raw:
@@ -237,34 +242,50 @@ def _workflow_findings(draft: DraftModule) -> list[Finding]:
 
 
 def _trust_findings(draft: DraftModule) -> list[Finding]:
+    """Validate evidence attached to claims that explicitly say verified.
+
+    Basic verification may inspect draft structure, policies, and operation
+    contracts without requiring an export/handoff-ready evidence packet. The
+    non-vacuous "at least one ledger-bound verified claim" rule is enforced by
+    the Trust Gate and lowering gate, where handoff/execution eligibility is
+    decided.
+    """
     findings: list[Finding] = []
     for claim in draft.claims:
         status = str(claim.get("status", "hypothesized"))
-        if status == "verified":
-            evidence = claim.get("evidence", []) or []
-            checked = False
-            reasons: list[str] = []
-            if not evidence:
-                reasons.append("no evidence attached")
-            for ev in evidence:
-                if isinstance(ev, Mapping):
-                    decision = LEDGER.decide(ev, claim, draft.module_id, draft.workflow, draft)
-                    checked = checked or decision.checked
-                    if not decision.checked:
-                        reasons.append(f"{decision.evidence_id or 'evidence'}: {decision.reason}")
-            if not checked:
-                findings.append(
-                    Finding(
-                        rule="T001.verified_claim_requires_ledger_bound_evidence",
-                        severity="critical",
-                        target=str(claim.get("id", "unknown_claim")),
-                        message="Claim marked verified without ledger-bound checked evidence.",
-                        suggestion="Reference an evidence id present in registries/evidence_ledger.yaml, or keep the claim hypothesized. Reasons: " + "; ".join(reasons[:4]),
-                    )
+        if status != "verified":
+            continue
+        evidence = claim.get("evidence", []) or []
+        checked = False
+        reasons: list[str] = []
+        if not evidence:
+            reasons.append("no evidence attached")
+        for ev in evidence:
+            if isinstance(ev, Mapping):
+                decision = get_evidence_ledger().decide(ev, claim, draft.module_id, draft.workflow, draft)
+                checked = checked or decision.checked
+                if not decision.checked:
+                    reasons.append(f"{decision.evidence_id or 'evidence'}: {decision.reason}")
+        if not checked:
+            findings.append(
+                Finding(
+                    rule="T001.verified_claim_requires_ledger_bound_evidence",
+                    severity="critical",
+                    target=str(claim.get("id", "unknown_claim")),
+                    message="Claim marked verified without ledger-bound checked evidence.",
+                    suggestion="Reference an evidence id present in registries/evidence_ledger.yaml, or keep the claim hypothesized. Reasons: " + "; ".join(reasons[:4]),
                 )
+            )
+            findings.append(
+                Finding(
+                    rule="TR001.verified_claim_requires_ledger_bound_evidence",
+                    severity="critical",
+                    target=str(claim.get("id", "unknown_claim")),
+                    message="Evidence ledger binding failed for a verified claim.",
+                    suggestion="Bind the claim to a checked evidence ledger record before handoff or lowering.",
+                )
+            )
     return findings
-
-
 
 def _operation_spec_findings(draft: DraftModule) -> list[Finding]:
     findings: list[Finding] = []

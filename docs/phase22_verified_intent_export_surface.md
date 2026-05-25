@@ -1,4 +1,4 @@
-# Pre-v1 Phase 22 - Verified Intent Export Surface and AIVL Consumer Profile
+# Pre-v1 Phase 22 — Verified Intent Export Surface and AIVL Consumer Profile
 
 Phase 22 adds an AiNIR-owned external consumer profile slot.
 

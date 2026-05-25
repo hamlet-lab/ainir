@@ -1,0 +1,4 @@
+# AiNIR public demo defensive integrity pass19 Python constraints.
+# Used by CI with: pip install -c requirements.lock.txt -e ".[dev]"
+PyYAML==6.0.3
+pytest==9.0.2

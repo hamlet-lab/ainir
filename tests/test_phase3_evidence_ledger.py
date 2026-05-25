@@ -18,7 +18,7 @@ def _rules(raw: dict) -> set[str]:
 def test_safe_verified_claim_uses_ledger_bound_evidence():
     report = verify_draft(load_draft("examples/create_user_outbox_safe/draft.yaml"))
     assert report.status == "passed"
-    assert "T001.verified_claim_requires_ledger_bound_evidence" not in {f.rule for f in report.findings}
+    assert "TR001.verified_claim_requires_ledger_bound_evidence" not in {f.rule for f in report.findings}
 
 
 def test_draft_self_attested_checked_evidence_is_rejected():
@@ -27,7 +27,7 @@ def test_draft_self_attested_checked_evidence_is_rejected():
     raw["claims"][0]["evidence"][0]["reliability"] = 0.99
     report = verify_draft(DraftModule(raw=raw))
     assert report.status == "blocked"
-    assert "T001.verified_claim_requires_ledger_bound_evidence" in _rules(raw)
+    assert "TR001.verified_claim_requires_ledger_bound_evidence" in _rules(raw)
 
 
 def test_ledger_evidence_cannot_be_reused_for_fake_claim_id():
@@ -36,7 +36,7 @@ def test_ledger_evidence_cannot_be_reused_for_fake_claim_id():
     raw["claims"][0]["statement"] = "A different claim tries to reuse the safe outbox evidence."
     report = verify_draft(DraftModule(raw=raw))
     assert report.status == "blocked"
-    assert "T001.verified_claim_requires_ledger_bound_evidence" in _rules(raw)
+    assert "TR001.verified_claim_requires_ledger_bound_evidence" in _rules(raw)
 
 
 def test_ledger_evidence_cannot_be_reused_for_changed_statement():
@@ -44,7 +44,7 @@ def test_ledger_evidence_cannot_be_reused_for_changed_statement():
     raw["claims"][0]["statement"] = "CreateUser uses outbox and also secretly does something else."
     report = verify_draft(DraftModule(raw=raw))
     assert report.status == "blocked"
-    assert "T001.verified_claim_requires_ledger_bound_evidence" in _rules(raw)
+    assert "TR001.verified_claim_requires_ledger_bound_evidence" in _rules(raw)
 
 
 def test_ledger_evidence_cannot_be_reused_for_other_module():
@@ -52,7 +52,7 @@ def test_ledger_evidence_cannot_be_reused_for_other_module():
     raw["module"] = "demo.other_module"
     report = verify_draft(DraftModule(raw=raw))
     assert report.status == "blocked"
-    assert "T001.verified_claim_requires_ledger_bound_evidence" in _rules(raw)
+    assert "TR001.verified_claim_requires_ledger_bound_evidence" in _rules(raw)
 
 
 def test_evidence_ledger_record_exists_for_safe_outbox():

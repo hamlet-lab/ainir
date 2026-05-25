@@ -12,14 +12,14 @@ build/
 prelaunch_results/
 golden_trace_results/
 *_results/
+.codex_tmp/
 .ainir_tmp/
-.ainir_local_tmp/
 ainir_phase*_trial_*/
 ainir_phase*_private_trial*/
 ainir_phase*_results*/
 ainir_private_trial_results*/
 github_private_trial_results/
-ainir_local_tmp_*/
+codex_ainir_*/
 ainir_demo_results/
 ainir_negative_conformance/
 ainir_golden_traces/

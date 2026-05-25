@@ -18,6 +18,80 @@ from .negative_conformance_harness import run_negative_conformance_corpus
 from .golden_trace_harness import run_golden_traces
 
 
+def _sha256_bytes(data: bytes) -> str:
+    from hashlib import sha256
+    return "sha256:" + sha256(data).hexdigest()
+
+
+def _write_trust_gate_bundle(out: Path, decision: dict[str, Any]) -> None:
+    """Persist trust-gate decision/receipt with a manifest so replay can audit siblings."""
+    out.mkdir(parents=True, exist_ok=True)
+    decision_path = out / "trust_gate_decision.json"
+    receipt_path = out / "trust_receipt.json"
+    manifest_path = out / "trust_receipt_manifest.jsonl"
+    decision_path.write_text(json.dumps(decision, indent=2, ensure_ascii=False), encoding="utf-8")
+    receipt = dict(decision.get("receipt", {})) if isinstance(decision.get("receipt"), dict) else {}
+    receipt_path.write_text(json.dumps(receipt, indent=2, ensure_ascii=False), encoding="utf-8")
+    from .trust_receipt_store import _sha256_json  # local helper; public API intentionally unchanged
+    record = {
+        "receipt_id": receipt.get("receipt_id"),
+        "manifest_record_status": "active",
+        "artifact_family": "trust_gate_out_dir_bundle",
+        "trust_status": decision.get("status"),
+        "stable_receipt_projection_hash": receipt.get("stable_receipt_projection_hash"),
+        "registry_snapshot_hash": receipt.get("registry_snapshot_hash"),
+        "module_id": decision.get("module_id"),
+        "workflow": decision.get("workflow"),
+        "receipt_raw_file_sha256": _sha256_bytes(receipt_path.read_bytes()),
+        "receipt_canonical_sha256": _sha256_json(receipt),
+        "decision_raw_file_sha256": _sha256_bytes(decision_path.read_bytes()),
+        "decision_canonical_sha256": _sha256_json(decision),
+        "receipt_path": str(receipt_path),
+        "decision_path": str(decision_path),
+    }
+    manifest_path.write_text(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _write_verified_intent_bundle(out: Path, result: dict[str, Any]) -> None:
+    """Persist a VerifiedIntentPacket with the exact TrustReceipt it references."""
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "verified_intent_export_result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    packet = result.get("packet")
+    receipt = result.get("receipt")
+    decision = result.get("decision")
+    if isinstance(packet, dict):
+        (out / "verified_intent_packet.json").write_text(json.dumps(packet, indent=2, ensure_ascii=False), encoding="utf-8")
+    if isinstance(receipt, dict):
+        (out / "verified_intent_trust_receipt.json").write_text(json.dumps(receipt, indent=2, ensure_ascii=False), encoding="utf-8")
+    if isinstance(decision, dict):
+        (out / "verified_intent_trust_gate_decision.json").write_text(json.dumps(decision, indent=2, ensure_ascii=False), encoding="utf-8")
+    if isinstance(receipt, dict) and isinstance(decision, dict):
+        from .trust_receipt_store import _sha256_json
+        receipt_path = out / "verified_intent_trust_receipt.json"
+        decision_path = out / "verified_intent_trust_gate_decision.json"
+        packet_path = out / "verified_intent_packet.json"
+        record = {
+            "artifact_family": "verified_intent_export_bundle",
+            "manifest_record_status": "active",
+            "receipt_id": receipt.get("receipt_id"),
+            "trust_status": decision.get("status"),
+            "stable_receipt_projection_hash": receipt.get("stable_receipt_projection_hash"),
+            "registry_snapshot_hash": receipt.get("registry_snapshot_hash"),
+            "module_id": decision.get("module_id"),
+            "workflow": decision.get("workflow"),
+            "receipt_raw_file_sha256": _sha256_bytes(receipt_path.read_bytes()),
+            "receipt_canonical_sha256": _sha256_json(receipt),
+            "decision_raw_file_sha256": _sha256_bytes(decision_path.read_bytes()),
+            "decision_canonical_sha256": _sha256_json(decision),
+            "packet_raw_file_sha256": _sha256_bytes(packet_path.read_bytes()) if packet_path.exists() else None,
+            "packet_canonical_sha256": __import__("ainir.verified_intent_export", fromlist=["_canonical_verified_intent_packet_hash"])._canonical_verified_intent_packet_hash(packet) if isinstance(packet, dict) else None,
+            "receipt_path": str(receipt_path),
+            "decision_path": str(decision_path),
+            "packet_path": str(packet_path) if packet_path.exists() else None,
+        }
+        (out / "trust_receipt_manifest.jsonl").write_text(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ainir", description="AiNIR public demo CLI")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -40,17 +114,17 @@ def main(argv: list[str] | None = None) -> int:
 
     p_demo = sub.add_parser("demo", help="run all public demo examples")
     p_demo.add_argument("--examples-dir", default="examples")
-    p_demo.add_argument("--out-dir", default="demo_results")
+    p_demo.add_argument("--out-dir", default=ainir_temp_str("ainir_demo_results"))
     p_demo.add_argument("--env", choices=list(allowed_environments()), default="public_demo", help="trusted runtime environment; draft.environment is ignored")
 
 
     p_gold = sub.add_parser("golden-trace-eval", help="run fixed Pre-v1 conformance golden traces")
     p_gold.add_argument("--traces", default="golden_traces.yaml")
-    p_gold.add_argument("--out-dir", default="golden_trace_results")
+    p_gold.add_argument("--out-dir", default=ainir_temp_str("ainir_golden_traces"))
     p_gold.add_argument("--env", choices=list(allowed_environments()), default="public_demo", help="trusted runtime environment; draft.environment is ignored")
     p_neg = sub.add_parser("negative-conformance-eval", help="run defensive negative conformance fixtures")
     p_neg.add_argument("--corpus", default="negative_conformance_corpus.yaml")
-    p_neg.add_argument("--out-dir", default="negative_conformance_results")
+    p_neg.add_argument("--out-dir", default=ainir_temp_str("ainir_negative_conformance"))
     p_neg.add_argument("--env", choices=list(allowed_environments()), default="public_demo", help="trusted runtime environment; draft.environment is ignored")
 
     p_receipt_issue = sub.add_parser("trust-receipt-issue", help="run Trust Gate and persist decision/receipt artifacts")
@@ -67,41 +141,42 @@ def main(argv: list[str] | None = None) -> int:
     p_receipt_replay.add_argument("--env", choices=list(allowed_environments()), default=None, help="override trusted environment; defaults to receipt.trusted_context.environment")
 
     p_phase18 = sub.add_parser("phase18-trust-gate-eval", help="run Phase 18 Trust Gate conformance checks")
-    p_phase18.add_argument("--out-dir", default="phase18_trust_gate_results")
+    p_phase18.add_argument("--out-dir", default=ainir_temp_str("ainir_phase18_trust_gate"))
 
     p_phase19 = sub.add_parser("phase19-trust-receipt-eval", help="run Phase 19 TrustReceipt persistence/replay checks")
-    p_phase19.add_argument("--out-dir", default="phase19_trust_receipt_results")
+    p_phase19.add_argument("--out-dir", default=ainir_temp_str("ainir_phase19_trust_receipt"))
 
     p_phase20 = sub.add_parser("phase20-receipt-conformance-eval", help="run Phase 20 TrustReceipt conformance integration checks")
-    p_phase20.add_argument("--out-dir", default="phase20_receipt_conformance_results")
+    p_phase20.add_argument("--out-dir", default=ainir_temp_str("ainir_phase20_receipt_conformance"))
 
     p_export = sub.add_parser("verified-intent-export", help="export optional VerifiedIntentPacket after Trust Gate pass")
     p_export.add_argument("draft")
     p_export.add_argument("--profile", default="AIVL", help="external consumer profile name; currently supports AIVLConsumerProfile")
-    p_export.add_argument("--out-dir", default="verified_intent_results")
+    p_export.add_argument("--out-dir", default=ainir_temp_str("ainir_verified_intent_results"))
     p_export.add_argument("--json", action="store_true")
     p_export.add_argument("--env", choices=list(allowed_environments()), default="public_demo", help="trusted runtime environment; draft.environment is ignored")
 
     p_phase22 = sub.add_parser("phase22-verified-intent-eval", help="run Phase 22 VerifiedIntentPacket export/profile conformance checks")
-    p_phase22.add_argument("--out-dir", default="phase22_verified_intent_results")
+    p_phase22.add_argument("--out-dir", default=ainir_temp_str("ainir_phase22_verified_intent"))
 
     p_phase23 = sub.add_parser("phase23-verified-intent-hardening-eval", help="run Phase 23 VerifiedIntentPacket export contract hardening checks")
-    p_phase23.add_argument("--out-dir", default="phase23_verified_intent_hardening_results")
+    p_phase23.add_argument("--out-dir", default=ainir_temp_str("ainir_phase23_verified_intent_hardening"))
 
     p_phase24 = sub.add_parser("phase24-verified-intent-semantic-eval", help="run Phase 24 VerifiedIntentPacket semantic grounding and validator checks")
-    p_phase24.add_argument("--out-dir", default="phase24_verified_intent_semantic_results")
+    p_phase24.add_argument("--out-dir", default=ainir_temp_str("ainir_phase24_verified_intent_semantic"))
 
     p_phase25 = sub.add_parser("phase25-verified-intent-contract-eval", help="run Phase 25 VerifiedIntentPacket strict contract and registry consistency checks")
-    p_phase25.add_argument("--out-dir", default="phase25_verified_intent_contract_results")
+    p_phase25.add_argument("--out-dir", default=ainir_temp_str("ainir_phase25_verified_intent_contract"))
 
     p_phase21 = sub.add_parser("phase21-launch-readiness-eval", help="run Phase 21 launch-readiness gate with TrustReceipt replay")
-    p_phase21.add_argument("--out-dir", default="phase21_launch_readiness_results")
+    p_phase21.add_argument("--out-dir", default=ainir_temp_str("ainir_phase21_launch_readiness"))
 
     p_phase26 = sub.add_parser("phase26-private-trial-eval", help="run Phase 26 local GitHub private-trial simulation")
     p_phase26.add_argument("--out-dir", default=ainir_temp_str("ainir_phase26_private_trial"))
 
     p_phase30 = sub.add_parser("phase30-v1-rc-candidate-check", help="run Phase 30 v1.0 RC candidate scope/package check")
     p_phase30.add_argument("--out-dir", default=ainir_temp_str("ainir_phase30_v1_rc_candidate"))
+    p_phase30.add_argument("--mode", choices=["quick-integrity", "full"], default="full", help="quick-integrity skips the heavier Phase 26 private-trial simulation")
 
     args = parser.parse_args(argv)
 
@@ -120,10 +195,7 @@ def main(argv: list[str] | None = None) -> int:
         draft = load_draft(args.draft)
         decision = evaluate_trust_gate(draft, context).as_dict()
         if args.out_dir:
-            out = Path(args.out_dir)
-            out.mkdir(parents=True, exist_ok=True)
-            (out / "trust_gate_decision.json").write_text(json.dumps(decision, indent=2, ensure_ascii=False), encoding="utf-8")
-            (out / "trust_receipt.json").write_text(json.dumps(decision["receipt"], indent=2, ensure_ascii=False), encoding="utf-8")
+            _write_trust_gate_bundle(Path(args.out_dir), decision)
         if args.json:
             print(json.dumps(decision, indent=2, ensure_ascii=False))
         else:
@@ -171,10 +243,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "lower":
         context = TrustedExecutionContext.from_environment(args.env, source="cli", purpose="lowering")
         draft = load_draft(args.draft)
-        report = verify_draft(draft, context)
-        if report.status != "passed":
-            _print_report(report.as_dict())
+        decision = evaluate_trust_gate(draft, context)
+        if not decision.lowering_allowed:
+            print(f"lowering refused by trust gate: status={decision.status}")
+            if decision.failed_gates:
+                print("failed_gates: " + ", ".join(decision.failed_gates))
+            for finding in decision.findings:
+                if finding.get("severity") == "critical":
+                    print(f"[critical] {finding.get('rule')} :: {finding.get('target')}")
             return 2
+        report = verify_draft(draft, context)
         try:
             target = lower_to_typescript(draft, report, args.out_dir, context)
         except RuntimeError as exc:
@@ -240,10 +318,7 @@ def main(argv: list[str] | None = None) -> int:
         draft = load_draft(args.draft)
         result = export_verified_intent_packet(draft, context, args.profile).as_dict()
         out = Path(args.out_dir)
-        out.mkdir(parents=True, exist_ok=True)
-        (out / "verified_intent_export_result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
-        if result.get("packet"):
-            (out / "verified_intent_packet.json").write_text(json.dumps(result["packet"], indent=2, ensure_ascii=False), encoding="utf-8")
+        _write_verified_intent_bundle(out, result)
         if args.json:
             print(json.dumps(result, indent=2, ensure_ascii=False))
         else:
@@ -296,7 +371,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "phase30-v1-rc-candidate-check":
         from .phase30_v1_rc_candidate import run_phase30_v1_rc_candidate_check
-        summary = run_phase30_v1_rc_candidate_check(args.out_dir)
+        summary = run_phase30_v1_rc_candidate_check(args.out_dir, mode=args.mode)
         print(f"AiNIR Phase 30 v1.0 RC candidate check: {summary['overall_status']}")
         print(f"decision: {summary['decision']}")
         print(f"reports: {args.out_dir}")
@@ -325,22 +400,42 @@ def _run_demo(examples_dir: Path, out_dir: Path, context: TrustedExecutionContex
     for path in draft_paths:
         draft = load_draft(path)
         report = verify_draft(draft, context)
+        decision = evaluate_trust_gate(draft, context)
         example_name = path.parent.name
         expected_status = (manifest.get(example_name) or {}).get("expected_status") if manifest else None
-        results.append({"example": example_name, "expected_status": expected_status, **report.as_dict()})
+        result = {"example": example_name, "expected_status": expected_status, **report.as_dict()}
+        result["trust_gate"] = {
+            "status": decision.status,
+            "lowering_allowed": decision.lowering_allowed,
+            "handoff_allowed": decision.handoff_allowed,
+            "failed_gates": list(decision.failed_gates),
+        }
+        results.append(result)
         dump_yaml(report.as_dict(), out_dir / f"{example_name}.report.yaml")
         if report.status == "passed":
-            try:
-                lower_to_typescript(draft, report, out_dir / "lowered", context)
-            except RuntimeError as exc:
-                results[-1]["lowering_error"] = str(exc)
+            if not decision.lowering_allowed:
+                results[-1]["lowering_error"] = "trust_gate_lowering_not_allowed"
                 results[-1]["status"] = "failed"
+                results[-1]["critical_count"] = int(results[-1].get("critical_count", 0)) + 1
                 results[-1]["findings"].append({
-                    "rule": "L001.lowering_refused",
+                    "rule": "T011.trust_gate_lowering_not_allowed",
                     "severity": "critical",
-                    "target": "lowerer",
-                    "message": str(exc),
+                    "target": "trust_gate.lowering_allowed",
+                    "message": "Demo lowering is refused unless TrustGateDecision.lowering_allowed is true.",
                 })
+            else:
+                try:
+                    lower_to_typescript(draft, report, out_dir / "lowered", context)
+                except RuntimeError as exc:
+                    results[-1]["lowering_error"] = str(exc)
+                    results[-1]["status"] = "failed"
+                    results[-1]["critical_count"] = int(results[-1].get("critical_count", 0)) + 1
+                    results[-1]["findings"].append({
+                        "rule": "L001.lowering_refused",
+                        "severity": "critical",
+                        "target": "lowerer",
+                        "message": str(exc),
+                    })
 
     summary = {
         "overall_status": "passed" if all(_expected_ok(r) for r in results) else "failed",

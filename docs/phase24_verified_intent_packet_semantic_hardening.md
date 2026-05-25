@@ -1,4 +1,4 @@
-# Pre-v1 Phase 24 - VerifiedIntentPacket Semantic Grounding and Validator Hardening
+# Pre-v1 Phase 24 — VerifiedIntentPacket Semantic Grounding and Validator Hardening
 
 Phase 24 tightens the optional `VerifiedIntentPacket` export surface.
 

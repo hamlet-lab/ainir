@@ -2,7 +2,7 @@
 
 ## Files
 
-- [ ] Use the tracked repository contents from `hamlet-lab/ainir`.
+- [ ] Use the `ainir_public_demo_repo_v1_0_rc_candidate` repository contents.
 - [ ] Do not include private archive ZIPs.
 - [ ] Do not include generated check folders.
 - [ ] Confirm `LICENSE` is Apache-2.0.
@@ -67,4 +67,4 @@ python -m ainir phase30-v1-rc-candidate-check --out-dir /tmp/ainir_phase30_v1_rc
 python scripts/run_phase26_private_trial.py --out-dir /tmp/ainir_phase26_private_trial
 ```
 
-Keep the repository private until README rendering and GitHub Actions have been checked.
+Only upload to a private GitHub repository after this passes.

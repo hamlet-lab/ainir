@@ -1,4 +1,4 @@
-# Pre-v1 Phase 17 - Final Defensive Conformance Review and Launch Readiness Decision
+# Pre-v1 Phase 17 — Final Defensive Conformance Review and Launch Readiness Decision
 
 Phase 17 is a review phase, not a new feature phase.
 

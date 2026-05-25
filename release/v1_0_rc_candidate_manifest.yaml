@@ -1,5 +1,5 @@
-release_candidate: AiNIR v1.0 RC Candidate
-status: rc_candidate
+release_candidate: AiNIR v1.0 RC Candidate Patch 7
+status: rc_candidate_patch7
 not_v1_final: true
 production_runtime_ready: false
 human_external_review: pending
@@ -16,7 +16,7 @@ frozen_public_surfaces:
   - Lowering Eligibility Gate
   - Negative Conformance Corpus
   - Golden Traces
-  - Launch Readiness / Release Readiness Checks
+  - Launch Readiness / Private Trial Checks
 known_limitations:
   - no production runtime backend
   - bounded public workflow registry

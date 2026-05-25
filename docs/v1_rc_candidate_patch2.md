@@ -1,4 +1,4 @@
-# AiNIR v1.0 RC Candidate Patch 2 - Trust Surface Consistency
+# AiNIR v1.0 RC Candidate Patch 2 — Trust Surface Consistency
 
 Patch 2 keeps AiNIR within the v1.0 RC candidate boundary while aligning the Trust Gate, lowerer, and TrustReceipt replay surfaces.
 
